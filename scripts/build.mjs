@@ -65,14 +65,20 @@ function copyDirRecursive(srcDir, destDir) {
   }
 }
 
-const coreCount = compileDir(
-  path.join(ROOT, 'packages', 'core', 'src'),
-  path.join(ROOT, 'packages', 'core', 'dist'),
-);
-const dshCount = compileDir(
-  path.join(ROOT, 'packages', 'dsh-plugin', 'src'),
-  path.join(ROOT, 'packages', 'dsh-plugin', 'dist'),
-);
+const webOnly = process.argv.includes('--web-only');
+
+let coreCount = 0;
+let dshCount = 0;
+if (!webOnly) {
+  coreCount = compileDir(
+    path.join(ROOT, 'packages', 'core', 'src'),
+    path.join(ROOT, 'packages', 'core', 'dist'),
+  );
+  dshCount = compileDir(
+    path.join(ROOT, 'packages', 'dsh-plugin', 'src'),
+    path.join(ROOT, 'packages', 'dsh-plugin', 'dist'),
+  );
+}
 buildBrowserEngine();
 copyDirRecursive(path.join(ROOT, 'apps', 'web', 'src'), path.join(ROOT, 'docs'));
 for (const geoName of ['llms.txt', 'llms-full.txt']) {
@@ -82,4 +88,8 @@ for (const geoName of ['llms.txt', 'llms-full.txt']) {
   }
 }
 
-console.log(`Built @nb-corp/nb-speak (${coreCount} files), @nb-corp/nb-speak-dsh (${dshCount} files), and synced docs/.`);
+console.log(
+  webOnly
+    ? 'Synced browser engine and apps/web/src -> docs/ (--web-only).'
+    : `Built @nb-corp/nb-speak (${coreCount} files), @nb-corp/nb-speak-dsh (${dshCount} files), and synced docs/.`,
+);

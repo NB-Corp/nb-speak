@@ -1,0 +1,104 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 640" width="1280" height="640">
+  <defs>
+    <filter id="softShadowZh" x="-10%" y="-10%" width="120%" height="125%">
+      <feDropShadow dx="0" dy="14" stdDeviation="16" flood-color="#221e18" flood-opacity="0.08"/>
+    </filter>
+  </defs>
+
+  <!-- Warm Paper-Ink Canvas -->
+  <rect width="1280" height="640" fill="#f7f4ee"/>
+
+  <rect x="54" y="48" width="144" height="32" rx="16" fill="#e5efe8"/>
+  <text x="126" y="69" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Consolas, monospace" font-size="13" font-weight="700" fill="#234432">NB-Corp · v0.2</text>
+
+  <!-- Left Title Column -->
+  <text x="54" y="150" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'HarmonyOS Sans SC', sans-serif" font-size="64" font-weight="800" fill="#1d1b18">nb-speak</text>
+  <text x="54" y="204" font-family="'PingFang SC', 'HarmonyOS Sans SC', 'MiSans', 'Microsoft YaHei UI', sans-serif" font-size="28" font-weight="700" fill="#284b37">让 AI Agent 真正说人话</text>
+
+  <text x="54" y="252" font-family="'PingFang SC', 'HarmonyOS Sans SC', 'MiSans', 'Microsoft YaHei UI', sans-serif" font-size="16.5" fill="#57524a">通用 send_message + send_artifact 双工具协议</text>
+  <text x="54" y="280" font-family="'PingFang SC', 'HarmonyOS Sans SC', 'MiSans', 'Microsoft YaHei UI', sans-serif" font-size="16.5" fill="#57524a">零依赖 OpenAI/SSE 桥接 · DSH 插件 · chat-human</text>
+
+  <!-- 3 Feature Pills -->
+  <rect x="54" y="330" width="398" height="52" rx="16" fill="#ffffff" stroke="#e4dfd5" stroke-width="1.5"/>
+  <circle cx="82" cy="356" r="6" fill="#284b37"/>
+  <text x="100" y="362" font-family="'PingFang SC', 'HarmonyOS Sans SC', 'MiSans', 'Microsoft YaHei UI', sans-serif" font-size="15" font-weight="600" fill="#1d1b18">send_message 短气泡节拍 + 末尾互补语音</text>
+
+  <rect x="54" y="394" width="398" height="52" rx="16" fill="#ffffff" stroke="#e4dfd5" stroke-width="1.5"/>
+  <circle cx="82" cy="420" r="6" fill="#284b37"/>
+  <text x="100" y="426" font-family="'PingFang SC', 'HarmonyOS Sans SC', 'MiSans', 'Microsoft YaHei UI', sans-serif" font-size="15" font-weight="600" fill="#1d1b18">send_artifact 剥离 SQL / 代码 / 表格卡片</text>
+
+  <rect x="54" y="458" width="398" height="52" rx="16" fill="#e5efe8" stroke="#c7dccf" stroke-width="1.5"/>
+  <text x="78" y="490" font-family="'PingFang SC', 'HarmonyOS Sans SC', 'MiSans', 'Microsoft YaHei UI', sans-serif" font-size="15" font-weight="700" fill="#20412f">bubble_lint: 0 告警 · 97.2%–100% 通过率</text>
+
+  <text x="54" y="574" font-family="ui-monospace, SFMono-Regular, Consolas, monospace" font-size="15" fill="#655f56">npx skills add NB-Corp/nb-speak</text>
+
+  <!-- Right Concentric M12 Chinese Split Stage -->
+  <rect x="492" y="52" width="734" height="536" rx="32" fill="#ece7dd" stroke="#dcd5c8" stroke-width="1.5" filter="url(#softShadowZh)"/>
+  <rect x="502" y="62" width="714" height="516" rx="24" fill="#fcfaf6" stroke="#ffffff" stroke-width="1.5"/>
+
+  <line x1="816" y1="62" x2="816" y2="578" stroke="#e7e1d6" stroke-width="1.5"/>
+
+  <!-- Pane 1: Raw LLM Wall (ZH) -->
+  <text x="526" y="102" font-family="'PingFang SC', 'HarmonyOS Sans SC', 'MiSans', 'Microsoft YaHei UI', sans-serif" font-size="14" font-weight="700" fill="#6b645b">传统大模型单块输出</text>
+  <rect x="698" y="84" width="96" height="24" rx="12" fill="#f9e6e2"/>
+  <text x="746" y="100" text-anchor="middle" font-family="'PingFang SC', 'HarmonyOS Sans SC', 'MiSans', 'Microsoft YaHei UI', sans-serif" font-size="11" font-weight="700" fill="#8d2d1e">3 项门禁拦截</text>
+
+  <rect x="526" y="126" width="268" height="398" rx="18" fill="#f5f1e9" stroke="#e6cfc9" stroke-width="1.2"/>
+  <text x="544" y="156" font-family="'PingFang SC', 'HarmonyOS Sans SC', 'MiSans', 'Microsoft YaHei UI', sans-serif" font-size="13" font-weight="700" fill="#3a352f">### 灰度评估结论汇报</text>
+  <text x="544" y="182" font-family="'PingFang SC', 'HarmonyOS Sans SC', 'MiSans', 'Microsoft YaHei UI', sans-serif" font-size="12.5" fill="#5e584f">向你汇报灰度评估结论！但在推全量</text>
+  <text x="544" y="203" font-family="'PingFang SC', 'HarmonyOS Sans SC', 'MiSans', 'Microsoft YaHei UI', sans-serif" font-size="12.5" fill="#5e584f">前建议注意以下三点风险：</text>
+  <text x="544" y="229" font-family="'PingFang SC', 'HarmonyOS Sans SC', 'MiSans', 'Microsoft YaHei UI', sans-serif" font-size="12.5" fill="#5e584f">1. 流量切面不足：放大 5 倍可能导</text>
+  <text x="544" y="250" font-family="'PingFang SC', 'HarmonyOS Sans SC', 'MiSans', 'Microsoft YaHei UI', sans-serif" font-size="12.5" fill="#5e584f">   致数据库连接池排队等待。</text>
+  <text x="544" y="276" font-family="'PingFang SC', 'HarmonyOS Sans SC', 'MiSans', 'Microsoft YaHei UI', sans-serif" font-size="12.5" fill="#5e584f">2. 建议分阶段推进：先推 50% 观察</text>
+  <text x="544" y="297" font-family="'PingFang SC', 'HarmonyOS Sans SC', 'MiSans', 'Microsoft YaHei UI', sans-serif" font-size="12.5" fill="#5e584f">   20 分钟并设定回滚红线。</text>
+  <rect x="544" y="316" width="232" height="90" rx="10" fill="#ebe5da"/>
+  <text x="556" y="340" font-family="ui-monospace, SFMono-Regular, Consolas, 'Microsoft YaHei UI', monospace" font-size="11.5" fill="#4f4a42">| 指标   | 灰度  | 红线   |</text>
+  <text x="556" y="362" font-family="ui-monospace, SFMono-Regular, Consolas, 'Microsoft YaHei UI', monospace" font-size="11.5" fill="#4f4a42">| 错误率 | 0.02% | &lt;0.10% |</text>
+  <text x="556" y="384" font-family="ui-monospace, SFMono-Regular, Consolas, 'Microsoft YaHei UI', monospace" font-size="11.5" fill="#4f4a42">| p99    | 38ms  | &lt;80ms  |</text>
+  <text x="544" y="436" font-family="'PingFang SC', 'HarmonyOS Sans SC', 'MiSans', 'Microsoft YaHei UI', sans-serif" font-size="12.5" fill="#8d2d1e">（叹气）请随时检阅，快去吃顿热乎</text>
+  <text x="544" y="457" font-family="'PingFang SC', 'HarmonyOS Sans SC', 'MiSans', 'Microsoft YaHei UI', sans-serif" font-size="12.5" fill="#8d2d1e">的早点休息吧！</text>
+  <text x="544" y="500" font-family="ui-monospace, SFMono-Regular, Consolas, monospace" font-size="11" fill="#8d2d1e">× markdown_structure · steward_cliche</text>
+
+  <!-- Pane 2: nb-speak Protocol (ZH) -->
+  <text x="842" y="102" font-family="'PingFang SC', 'HarmonyOS Sans SC', 'MiSans', 'Microsoft YaHei UI', sans-serif" font-size="14" font-weight="700" fill="#1d1b18">nb-speak 双工具协议</text>
+  <rect x="1090" y="84" width="100" height="24" rx="12" fill="#e5efe8"/>
+  <text x="1140" y="100" text-anchor="middle" font-family="'PingFang SC', 'HarmonyOS Sans SC', 'MiSans', 'Microsoft YaHei UI', sans-serif" font-size="11.5" font-weight="700" fill="#20412f">0 告警</text>
+
+  <!-- User prompt bubble -->
+  <rect x="902" y="126" width="288" height="44" rx="18" fill="#284b37"/>
+  <text x="920" y="153" font-family="'PingFang SC', 'HarmonyOS Sans SC', 'MiSans', 'Microsoft YaHei UI', sans-serif" font-size="13" font-weight="600" fill="#faf8f4">20% 灰度跑满 25 分钟，能推全量吗？</text>
+
+  <!-- Agent Bubble 1 -->
+  <rect x="842" y="188" width="288" height="44" rx="18" fill="#f2ede4" stroke="#e2dcd0" stroke-width="1"/>
+  <text x="860" y="215" font-family="'PingFang SC', 'HarmonyOS Sans SC', 'MiSans', 'Microsoft YaHei UI', sans-serif" font-size="13.5" font-weight="600" fill="#1d1b18">错误率 0.02% 没动，p99 降到 38ms</text>
+
+  <!-- Agent Bubble 2 -->
+  <rect x="842" y="242" width="266" height="44" rx="18" fill="#f2ede4" stroke="#e2dcd0" stroke-width="1"/>
+  <text x="860" y="269" font-family="'PingFang SC', 'HarmonyOS Sans SC', 'MiSans', 'Microsoft YaHei UI', sans-serif" font-size="13.5" font-weight="600" fill="#1d1b18">连接池水位也稳，直接推全量吧</text>
+
+  <!-- Slide-out SQL Artifact Card -->
+  <rect x="842" y="302" width="348" height="122" rx="18" fill="#faf8f3" stroke="#d8d0c2" stroke-width="1.2"/>
+  <rect x="842" y="302" width="348" height="34" rx="18" fill="#ece7dd"/>
+  <text x="860" y="324" font-family="ui-monospace, SFMono-Regular, Consolas, monospace" font-size="12" font-weight="700" fill="#2b2823">auth-canary-25m.sql</text>
+  <text x="1104" y="324" font-family="'PingFang SC', 'HarmonyOS Sans SC', 'MiSans', 'Microsoft YaHei UI', sans-serif" font-size="11" font-weight="600" fill="#655f56">代码卡 · SQL</text>
+  <text x="860" y="362" font-family="ui-monospace, SFMono-Regular, Consolas, monospace" font-size="12" fill="#284b37">SELECT err_rate, p99_ms, pool_wait</text>
+  <text x="860" y="384" font-family="ui-monospace, SFMono-Regular, Consolas, monospace" font-size="12" fill="#2b2823">FROM canary_rollup WHERE slice='20%';</text>
+  <text x="860" y="406" font-family="'PingFang SC', 'HarmonyOS Sans SC', 'MiSans', 'Microsoft YaHei UI', sans-serif" font-size="11.5" fill="#6c665d">-- 零锁等待 · 校验通过</text>
+
+  <!-- Complementary Voice-Note Waveform Pill -->
+  <rect x="842" y="442" width="268" height="42" rx="21" fill="#e5efe8" stroke="#c3dacb" stroke-width="1.2"/>
+  <circle cx="864" cy="463" r="14" fill="#284b37"/>
+  <polygon points="861,457 861,469 871,463" fill="#faf8f4"/>
+  <rect x="890" y="456" width="3.5" height="14" rx="1.7" fill="#284b37"/>
+  <rect x="898" y="451" width="3.5" height="24" rx="1.7" fill="#284b37"/>
+  <rect x="906" y="454" width="3.5" height="18" rx="1.7" fill="#284b37"/>
+  <rect x="914" y="449" width="3.5" height="28" rx="1.7" fill="#284b37"/>
+  <rect x="922" y="455" width="3.5" height="16" rx="1.7" fill="#284b37"/>
+  <rect x="930" y="452" width="3.5" height="22" rx="1.7" fill="#284b37"/>
+  <rect x="938" y="457" width="3.5" height="12" rx="1.7" fill="#284b37"/>
+  <rect x="946" y="453" width="3.5" height="20" rx="1.7" fill="#284b37"/>
+  <text x="962" y="468" font-family="'PingFang SC', 'HarmonyOS Sans SC', 'MiSans', 'Microsoft YaHei UI', sans-serif" font-size="12" font-weight="700" fill="#20412f">6秒 · 沉稳补充</text>
+
+  <text x="846" y="510" font-family="'PingFang SC', 'HarmonyOS Sans SC', 'MiSans', 'Microsoft YaHei UI', sans-serif" font-size="12.5" fill="#57524a">“大盘安安静静跑了快半小时。你那边</text>
+  <text x="846" y="530" font-family="'PingFang SC', 'HarmonyOS Sans SC', 'MiSans', 'Microsoft YaHei UI', sans-serif" font-size="12.5" fill="#57524a"> 点完发布就能收工下班啦。”</text>
+</svg>

@@ -9,10 +9,30 @@ import { SCENARIOS } from './scenarios.js';
 
 const LANG = document.documentElement.lang.startsWith('zh') ? 'zh' : 'en';
 
+const ZH_EMOTION_MAP = {
+  calm: '沉稳补充',
+  warm: '温和叮嘱',
+  dry: '克制调侃',
+  relieved: '松一口气',
+  playful: '轻快随口',
+  serious: '严肃提醒',
+  neutral: '口语补充',
+};
+
+const ZH_KIND_MAP = {
+  code: '代码卡',
+  table: '表格卡',
+  diff: '变更卡',
+  markdown: '文档卡',
+};
+
 const UI_STRINGS = {
   en: {
     issuesSuffix: (n) => (n === 0 ? 'bubble_lint: 0 warnings' : `bubble_lint: ${n} issues`),
     voiceLabel: (sec, emotion) => `${sec}s · ${emotion || 'voice'}`,
+    artifactBadge: (kind, language) => (language ? `${kind} · ${language}` : kind),
+    footStat: (bubbles, arts, sec) => `${bubbles} bubbles · ${arts} artifact · ${sec}s cadence`,
+    rawFallbackStat: 'Single assistant.content blob',
     copied: 'Copied',
     copy: 'Copy',
     bridgeOnline: 'Bridge connected',
@@ -21,7 +41,13 @@ const UI_STRINGS = {
   },
   zh: {
     issuesSuffix: (n) => (n === 0 ? 'bubble_lint: 0 告警' : `bubble_lint: ${n} 项问题`),
-    voiceLabel: (sec, emotion) => `${sec}秒 · ${emotion || '语音'}`,
+    voiceLabel: (sec, emotion) => `${sec}秒 · ${ZH_EMOTION_MAP[emotion] || emotion || '语音补充'}`,
+    artifactBadge: (kind, language) => {
+      const k = ZH_KIND_MAP[kind] || kind;
+      return language ? `${k} · ${language.toUpperCase()}` : k;
+    },
+    footStat: (bubbles, arts, sec) => `${bubbles} 条短气泡 · ${arts} 张独立卡片 · ${sec}秒节拍`,
+    rawFallbackStat: '单块长文倾倒',
     copied: '已复制',
     copy: '复制',
     bridgeOnline: '本地桥接已连接',
@@ -106,7 +132,7 @@ function renderArtifactCard(art) {
   const titleWrap = createEl('span', 'artifact-title');
   titleWrap.innerHTML = svgCode();
   titleWrap.appendChild(createEl('span', '', art.title));
-  const kindBadge = createEl('span', 'artifact-kind', art.language ? `${art.kind} · ${art.language}` : art.kind);
+  const kindBadge = createEl('span', 'artifact-kind', UI_STRINGS.artifactBadge(art.kind, art.language));
   head.appendChild(titleWrap);
   head.appendChild(kindBadge);
 
@@ -156,13 +182,14 @@ function renderSplitStage(scenario, animate = true) {
   rawStream.appendChild(wallRow);
 
   const rawIssueCodes = rawReport.issues.slice(0, 3).map((i) => i.code).join(' · ');
-  rawFootStat.textContent = rawIssueCodes || 'Single assistant.content blob';
+  rawFootStat.textContent = rawIssueCodes || UI_STRINGS.rawFallbackStat;
 
   // Lint nb-speak payload via real @nb-corp/nb-speak engine
   const speakReport = lintTurn(scenario.speakToolCall);
   speakLintBadge.className = `lint-badge ${speakReport.ok ? 'lint-badge--pass' : 'lint-badge--warn'}`;
   speakLintBadge.textContent = UI_STRINGS.issuesSuffix(speakReport.issueCount);
 
+  const naturalSchedule = computeBubbleSchedule(scenario.speakToolCall.bubbles);
   const schedule = computeBubbleSchedule(scenario.speakToolCall.bubbles, {
     speedMultiplier: animate ? 1.55 : 999,
   });
@@ -178,8 +205,12 @@ function renderSplitStage(scenario, animate = true) {
     );
   }
 
-  const totalCadence = schedule.reduce((acc, s) => acc + s.delayMs, 0);
-  speakFootStat.textContent = `${schedule.length} bubbles · ${scenario.artifacts.length} artifact · ${(totalCadence / 1000).toFixed(1)}s cadence`;
+  const totalCadence = naturalSchedule.reduce((acc, s) => acc + s.delayMs, 0);
+  speakFootStat.textContent = UI_STRINGS.footStat(
+    naturalSchedule.length,
+    scenario.artifacts.length,
+    (totalCadence / 1000).toFixed(1),
+  );
 
   if (!animate) {
     for (const item of schedule) {

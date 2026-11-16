@@ -15,14 +15,14 @@
   <meta property="og:title" content="nb-speak — 让 AI Agent 像真人一样发消息">
   <meta property="og:description" content="通用 send_message + send_artifact IM 气泡协议、零依赖 OpenAI/SSE 桥接网关、DeepSeek Harness 插件与 chat-human 技能。">
   <meta property="og:url" content="https://nb-corp.github.io/nb-speak/zh/">
-  <meta property="og:image" content="https://nb-corp.github.io/nb-speak/og-banner.png">
+  <meta property="og:image" content="https://nb-corp.github.io/nb-speak/assets/og-banner-zh.png">
   <meta property="og:image:width" content="1280">
   <meta property="og:image:height" content="640">
 
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="nb-speak — 让 AI Agent 像真人一样发消息">
   <meta name="twitter:description" content="把冗长 Markdown 论文块拆解为带打字呼吸感的短气泡、独立代码卡片与非重复互补语音条。">
-  <meta name="twitter:image" content="https://nb-corp.github.io/nb-speak/og-banner.png">
+  <meta name="twitter:image" content="https://nb-corp.github.io/nb-speak/assets/og-banner-zh.png">
 
   <link rel="stylesheet" href="../assets/style.css">
 
@@ -142,7 +142,7 @@
               <div class="chat-stream" id="speak-stream" aria-live="polite"></div>
 
               <div class="pane-foot">
-                <span class="mono" id="speak-foot-stat">2 bubbles · 1 artifact</span>
+                <span class="mono" id="speak-foot-stat">2 条短气泡 · 1 张独立卡片 · 1.2秒节拍</span>
                 <div style="display:flex;gap:8px;">
                   <button type="button" class="mini-btn" id="toggle-stage-json">查看 JSON</button>
                   <button type="button" class="mini-btn" id="replay-stage-btn">
@@ -184,10 +184,10 @@
                 <div class="field-group">
                   <label class="field-label" for="ws-persona">可插拔人设层</label>
                   <select class="soft-select" id="ws-persona">
-                    <option value="neutral_peer">平等技术搭档 (Neutral Peer)</option>
-                    <option value="sharp_lead">干练技术负责人 (Sharp Tech Lead)</option>
-                    <option value="warm_companion">熟稔日常伙伴 (Warm Companion)</option>
-                    <option value="calm_sre">沉稳值班 SRE (Calm SRE Relay)</option>
+                    <option value="neutral_peer">平等技术搭档</option>
+                    <option value="sharp_lead">干练技术负责人</option>
+                    <option value="warm_companion">熟稔日常伙伴</option>
+                    <option value="calm_sre">沉稳值班 SRE</option>
                   </select>
                 </div>
                 <div class="field-group">

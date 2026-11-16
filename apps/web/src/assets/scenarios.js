@@ -142,10 +142,11 @@ Hope this helps! Please run this migration and get some rest after deploying.`,
       },
       artifacts: [
         {
-          title: 'auth-canary-25m.md',
-          kind: 'table',
-          language: 'markdown',
-          content: '| 指标       | 基线   | 20% 灰度 | 结论 |\n| ---------- | ------ | -------- | ---- |\n| 错误率     | 0.03%  | 0.02%    | 通过 |\n| p99 延迟   | 61ms   | 38ms     | 通过 |\n| 连接池等待 | 1.2ms  | 0.9ms    | 通过 |',
+          title: 'auth-canary-25m.sql',
+          kind: 'code',
+          language: 'sql',
+          content:
+            "SELECT slice, err_rate, p99_ms, pool_wait_ms\n  FROM canary_rollup\n  WHERE service = 'auth' AND window = '25m';\n-- 20% 灰度 | 0.02% | 38ms | 0.9ms (零锁等待 · 通过)",
         },
       ],
     },

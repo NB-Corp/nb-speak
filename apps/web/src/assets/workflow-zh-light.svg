@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 236" width="1200" height="236">
+  <rect width="1200" height="236" rx="24" fill="#f7f4ee"/>
+
+  <!-- Stage 1 -->
+  <rect x="24" y="30" width="242" height="176" rx="20" fill="#fcfaf6" stroke="#ded8cc" stroke-width="1.5"/>
+  <text x="44" y="64" font-family="'PingFang SC', 'HarmonyOS Sans SC', 'MiSans', 'Microsoft YaHei UI', sans-serif" font-size="14.5" font-weight="700" fill="#284b37">1. 任意大模型 / 框架</text>
+  <text x="44" y="96" font-family="'PingFang SC', 'HarmonyOS Sans SC', 'MiSans', 'Microsoft YaHei UI', sans-serif" font-size="12.5" fill="#4f4a42">· DeepSeek / OpenAI</text>
+  <text x="44" y="122" font-family="'PingFang SC', 'HarmonyOS Sans SC', 'MiSans', 'Microsoft YaHei UI', sans-serif" font-size="12.5" fill="#4f4a42">· Claude / Gemini</text>
+  <text x="44" y="148" font-family="'PingFang SC', 'HarmonyOS Sans SC', 'MiSans', 'Microsoft YaHei UI', sans-serif" font-size="12.5" fill="#4f4a42">· DSH / 本地 Gemma</text>
+  <text x="44" y="174" font-family="'PingFang SC', 'HarmonyOS Sans SC', 'MiSans', 'Microsoft YaHei UI', sans-serif" font-size="12" fill="#787166">· 4B 语音翻译侧车</text>
+
+  <!-- Arrow 1 -->
+  <line x1="274" y1="118" x2="308" y2="118" stroke="#7d766b" stroke-width="2"/>
+  <polygon points="306,112 316,118 306,124" fill="#7d766b"/>
+
+  <!-- Stage 2 -->
+  <rect x="324" y="30" width="292" height="176" rx="20" fill="#e5efe8" stroke="#c3dacb" stroke-width="1.5"/>
+  <text x="346" y="64" font-family="'PingFang SC', 'HarmonyOS Sans SC', 'MiSans', 'Microsoft YaHei UI', sans-serif" font-size="14.5" font-weight="700" fill="#1e3f2d">2. nb-speak 双工具协议与桥接层</text>
+  <text x="346" y="96" font-family="'PingFang SC', 'HarmonyOS Sans SC', 'MiSans', 'Microsoft YaHei UI', sans-serif" font-size="12.5" fill="#234432">· send_message 短气泡与语音</text>
+  <text x="346" y="122" font-family="'PingFang SC', 'HarmonyOS Sans SC', 'MiSans', 'Microsoft YaHei UI', sans-serif" font-size="12.5" fill="#234432">· send_artifact 剥离代码表格</text>
+  <text x="346" y="148" font-family="'PingFang SC', 'HarmonyOS Sans SC', 'MiSans', 'Microsoft YaHei UI', sans-serif" font-size="12.5" fill="#234432">· 纯文本长文自动兜底归一化</text>
+  <text x="346" y="174" font-family="'PingFang SC', 'HarmonyOS Sans SC', 'MiSans', 'Microsoft YaHei UI', sans-serif" font-size="12" font-weight="600" fill="#284b37">· 子代理通信工具透明防撞</text>
+
+  <!-- Arrow 2 -->
+  <line x1="624" y1="118" x2="658" y2="118" stroke="#7d766b" stroke-width="2"/>
+  <polygon points="656,112 666,118 656,124" fill="#7d766b"/>
+
+  <!-- Stage 3 -->
+  <rect x="674" y="30" width="224" height="176" rx="20" fill="#fcfaf6" stroke="#ded8cc" stroke-width="1.5"/>
+  <text x="694" y="64" font-family="'PingFang SC', 'HarmonyOS Sans SC', 'MiSans', 'Microsoft YaHei UI', sans-serif" font-size="14.5" font-weight="700" fill="#284b37">3. bubble_lint 确定性门禁</text>
+  <text x="694" y="96" font-family="'PingFang SC', 'HarmonyOS Sans SC', 'MiSans', 'Microsoft YaHei UI', sans-serif" font-size="12.5" fill="#4f4a42">· 拦截标题/表格/代码块混排</text>
+  <text x="694" y="122" font-family="'PingFang SC', 'HarmonyOS Sans SC', 'MiSans', 'Microsoft YaHei UI', sans-serif" font-size="12.5" fill="#4f4a42">· 拦截舞台括号与管家汇报腔</text>
+  <text x="694" y="148" font-family="'PingFang SC', 'HarmonyOS Sans SC', 'MiSans', 'Microsoft YaHei UI', sans-serif" font-size="12.5" fill="#4f4a42">· 校验语音二元组重合 &lt; 50%</text>
+  <text x="694" y="174" font-family="'PingFang SC', 'HarmonyOS Sans SC', 'MiSans', 'Microsoft YaHei UI', sans-serif" font-size="12" fill="#787166">· TS + Python 双端同构</text>
+
+  <!-- Arrow 3 -->
+  <line x1="906" y1="118" x2="940" y2="118" stroke="#7d766b" stroke-width="2"/>
+  <polygon points="938,112 948,118 938,124" fill="#7d766b"/>
+
+  <!-- Stage 4 -->
+  <rect x="956" y="30" width="220" height="176" rx="20" fill="#284b37"/>
+  <text x="976" y="64" font-family="'PingFang SC', 'HarmonyOS Sans SC', 'MiSans', 'Microsoft YaHei UI', sans-serif" font-size="14.5" font-weight="700" fill="#faf8f4">4. 真人感 IM 终端交付</text>
+  <text x="976" y="96" font-family="'PingFang SC', 'HarmonyOS Sans SC', 'MiSans', 'Microsoft YaHei UI', sans-serif" font-size="12.5" fill="#dcebe1">· 拇指节拍短气泡 (SSE)</text>
+  <text x="976" y="122" font-family="'PingFang SC', 'HarmonyOS Sans SC', 'MiSans', 'Microsoft YaHei UI', sans-serif" font-size="12.5" fill="#dcebe1">· 独立代码 / 表格卡片</text>
+  <text x="976" y="148" font-family="'PingFang SC', 'HarmonyOS Sans SC', 'MiSans', 'Microsoft YaHei UI', sans-serif" font-size="12.5" fill="#dcebe1">· 末尾非重复互补语音条</text>
+  <text x="976" y="174" font-family="'PingFang SC', 'HarmonyOS Sans SC', 'MiSans', 'Microsoft YaHei UI', sans-serif" font-size="12" fill="#b4d5c0">· nb-im / Web / DSH</text>
+</svg>
