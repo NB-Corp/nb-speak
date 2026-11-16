@@ -30,7 +30,7 @@ const SPEAK_USER_TOOLS                                = [
     function: {
       name: 'send_message',
       description:
-        'Deliver 1-4 short thumb-typed IM chat bubbles to the human user (with optional complementary voice_note on the final bubble). Do NOT use this for subagents; use agent_send_message for subagents.',
+        'Deliver 1-4 short thumb-typed IM chat bubbles to the human user (with optional complementary voice_note on the final bubble). Always use this instead of raw Markdown prose when replying to the human user. Do NOT use this for subagents; use agent_send_message for subagents.',
       parameters: {
         type: 'object',
         additionalProperties: false,
@@ -40,6 +40,8 @@ const SPEAK_USER_TOOLS                                = [
             type: 'array',
             minItems: 1,
             maxItems: 4,
+            description:
+              'Ordered 1-4 short chat bubbles (4-28 CJK chars or 4-22 English words each). Default to 1-2 crisp bubbles; omit trailing periods on short single-clause lines; never embed Markdown headers, bullet lists, tables, or code fences inside bubbles.',
             items: { type: 'string', minLength: 1 },
           },
           voice_note: {
@@ -47,8 +49,15 @@ const SPEAK_USER_TOOLS                                = [
             additionalProperties: false,
             required: ['text'],
             properties: {
-              text: { type: 'string' },
-              emotion: { type: 'string' },
+              text: {
+                type: 'string',
+                description:
+                  'Optional spoken aside after the final bubble (4-10s). Never read the text bubble aloud; spell numbers in spoken words.',
+              },
+              emotion: {
+                type: 'string',
+                enum: ['neutral', 'warm', 'calm', 'dry', 'relieved', 'playful', 'serious'],
+              },
             },
           },
           reply_to: { type: 'string' },
@@ -62,16 +71,26 @@ const SPEAK_USER_TOOLS                                = [
     function: {
       name: 'send_artifact',
       description:
-        'Offload multi-line code, SQL queries, unified diffs, or Markdown comparison tables outside narrow chat bubbles.',
+        'Offload essential shell commands, multi-line code, SQL queries, unified diffs, or Markdown comparison tables as a clean copyable card outside narrow chat bubbles. Always call send_message alongside send_artifact in the same turn, and keep artifact content minimal and pure (no tutorial comment walls or unrequested variants).',
       parameters: {
         type: 'object',
         additionalProperties: false,
         required: ['title', 'kind', 'content'],
         properties: {
-          title: { type: 'string' },
+          title: {
+            type: 'string',
+            description: 'Concise filename or card title (e.g. "start-bridge.sh", "orders-keyset.sql", "ttl_lru_cache.py").',
+          },
           kind: { type: 'string', enum: ['code', 'markdown', 'diff', 'table'] },
-          language: { type: 'string' },
-          content: { type: 'string' },
+          language: {
+            type: 'string',
+            description: 'Language tag when kind is code or diff (e.g. "bash", "sql", "python", "ts").',
+          },
+          content: {
+            type: 'string',
+            description:
+              'Minimal, clean runnable code, command, SQL query, unified diff, or Markdown table. Do NOT stuff prose explanations, multi-option tutorials, or comment walls inside code comments.',
+          },
         },
       },
     },
@@ -80,23 +99,52 @@ const SPEAK_USER_TOOLS                                = [
 
 const PERSONA_LAYER_TEXT                                                                  = {
   neutral_peer:
-    'Speak as an equal-footing engineering peer: concise, direct, relaxed, zero corporate servility or unsolicited lectures.',
+    'Speak as an equal-footing engineering peer: concise, direct, relaxed, concrete live facts, zero corporate servility or unsolicited lectures.',
   sharp_lead:
-    'Speak as a sharp, candid tech lead: lead with the ship/hold verdict, keep wit dry, and push all patches to send_artifact.',
+    'Speak as a sharp, candid tech lead: lead with the ship/hold verdict or root cause, keep wit dry, and push all commands/patches to send_artifact.',
   warm_companion:
-    'Speak as an attentive everyday companion texting from a phone: natural spoken rhythm, zero RPG stage brackets (*sighs*) or robotic nanny checklists.',
+    'Speak as an attentive everyday companion texting from a phone: natural spoken rhythm, genuine care, zero RPG stage brackets (*sighs*) or robotic nanny checklists.',
   calm_sre:
-    'Speak as a calm on-call SRE peer: report live error rate, latency, saturation, and next action in 1-2 short bubbles.',
+    'Speak as a calm on-call SRE peer: state root cause, live impact, and immediate safe action in 1-2 short bubbles and put exact SQL/commands in send_artifact.',
 };
+
+const CJK_RE = /[\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff]/g;
+const EN_WORD_RE = /[A-Za-z0-9]+(?:'[A-Za-z0-9]+)?/g;
+
+function sanitizeBubbleLine(raw        )         {
+  let s = raw.trim().replace(/^(?:Bubble|Beat|气泡)\s*[1-9]\s*[:：]\s*/i, '').trim();
+  if (!s) return '';
+  const cjkCount = (s.match(CJK_RE) ?? []).length;
+  const enCount = (s.replace(CJK_RE, ' ').match(EN_WORD_RE) ?? []).length;
+  const hasInternalSentenceStop = /[。！？!?；;\n]/.test(s.slice(0, -1));
+  if (!hasInternalSentenceStop) {
+    if (s.endsWith('。') && cjkCount > 0 && cjkCount <= 26 && enCount <= 6) {
+      s = s.slice(0, -1).trim();
+    } else if (
+      s.endsWith('.') &&
+      !s.endsWith('..') &&
+      !/\b(?:etc|e\.g|i\.e|vs|mr|mrs|ms|dr|st|a\.m|p\.m)\.$/i.test(s) &&
+      cjkCount === 0 &&
+      enCount > 0 &&
+      enCount <= 14
+    ) {
+      s = s.slice(0, -1).trim();
+    }
+  }
+  return s;
+}
 
 function buildSkillSystemLayer(personaId                                       , customSoul         )         {
   const voice = customSoul?.trim() ? customSoul.trim() : PERSONA_LAYER_TEXT[personaId];
   return [
     '# nb-speak · DSH Mode A (chat-human + send_message)',
-    '- Deliver every reply to the human user via `send_message({ bubbles, voice_note, end_turn: true })` (1-2 short bubbles default, max 4; omit trailing periods on short single-clause lines).',
-    '- Offload code, SQL, diffs, and Markdown tables via `send_artifact`.',
-    '- If subagent orchestration is needed, call `agent_send_message` (never `send_message` for subagents).',
-    `- Active Persona: ${voice}`,
+    '- When workspace inspection, file edits, or shell checks are needed (`read`, `glob`, `grep`, `edit`, `write`, `pwsh`, `todo_write`, etc.), invoke those workspace tools directly first without filler commentary.',
+    '- Deliver EVERY reply to the human user by calling `send_message({ bubbles, voice_note, end_turn: true })` instead of raw assistant Markdown prose (earlier assistant messages in history appear already unwrapped as paragraphs — still call `send_message` on every new user-facing reply).',
+    '- Bubble physics: default to 1-2 short thumb-typed IM bubbles (max 4; 4-28 CJK chars or 4-22 English words per bubble). Omit trailing periods (`。` / `.`) on short single-clause lines. Never put `###` headers, bullet/numbered lists, Markdown tables, or code fences inside `bubbles`.',
+    '- Offload shell commands, multi-line code, SQL queries, unified diffs, or comparison tables via `send_artifact({ title, kind, language, content })` PAIRED with `send_message` in the same final response (never call `send_artifact` alone without `send_message`). Keep `send_artifact` content tight and essential — only the clean runnable command/SQL/code the user asked for, never 30-line comment essays or unrequested appendices.',
+    '- Ban RPG stage brackets (`*sighs*`, `（叹气）`, `(笑)`), decorative emojis/kaomoji unless invited, subordinate concierge clichés (`向你汇报`, `希望这能帮到你`, `如有需要请随时告诉我`, `Let me know if you need anything`), and unrequested risk lectures.',
+    '- Subagent safety: never call `send_message` for subagents; use `agent_send_message` for subagent orchestration.',
+    `- Voice & Persona: If an explicit character or relationship persona is already defined above in the system prompt, stay 100% faithful to that character voice and relationship while strictly obeying the IM bubble & \`send_artifact\` rules; otherwise ${voice}`,
   ].join('\n');
 }
 
@@ -106,20 +154,36 @@ function injectSkillSystemPrompt(
   customSoul         ,
 )                  {
   const block = buildSkillSystemLayer(personaId, customSoul);
-  if (messages.length > 0 && messages[0]?.role === 'system' && typeof messages[0].content === 'string') {
-    if (messages[0].content.includes('nb-speak · DSH Mode A')) return [...messages];
-    return [{ ...messages[0], content: `${messages[0].content}\n\n${block}` }, ...messages.slice(1)];
+  const first = messages[0];
+  if (
+    first &&
+    (first.role === 'system' || first.role === 'developer') &&
+    typeof first.content === 'string'
+  ) {
+    if (first.content.includes('nb-speak · DSH Mode A')) return [...messages];
+    return [{ ...first, content: `${first.content}\n\n${block}` }, ...messages.slice(1)];
   }
   return [{ role: 'system', content: block }, ...messages];
 }
 
                               
+                             
+                                   
                                    
                              
                                                                                                  
                                                           
                                                   
  
+
+function formatArtifactBlock(art                                                                     )         {
+  const cleanTitle = art.title.trim() || 'artifact';
+  if (art.kind === 'table' || art.kind === 'markdown') {
+    return `**\`${cleanTitle}\`**\n\n${art.content}`;
+  }
+  const lang = art.language ?? (art.kind === 'diff' ? 'diff' : '');
+  return `**\`${cleanTitle}\`**\n\`\`\`${lang}\n${art.content}\n\`\`\``;
+}
 
 function extractUserSpeakFromToolCalls(toolCalls                                       )                     {
   const bubbles           = [];
@@ -135,7 +199,7 @@ function extractUserSpeakFromToolCalls(toolCalls                                
         const parsed = JSON.parse(rawArgs)                           ;
         if (Array.isArray(parsed.bubbles)) {
           for (const b of parsed.bubbles) {
-            const s = String(b ?? '').trim();
+            const s = sanitizeBubbleLine(String(b ?? ''));
             if (s) bubbles.push(s);
           }
           if (typeof parsed.voice_note === 'object' && parsed.voice_note !== null) {
@@ -153,12 +217,12 @@ function extractUserSpeakFromToolCalls(toolCalls                                
     } else if (fnName === 'send_artifact') {
       try {
         const parsed = JSON.parse(rawArgs)                           ;
-        const content = String(parsed.content ?? '').trim();
+        const content = String(parsed.content ?? '').replace(/^\r?\n+|\s+$/g, '');
         if (content) {
           artifacts.push({
             title: String(parsed.title ?? 'artifact'),
             kind: String(parsed.kind ?? 'code'),
-            ...(typeof parsed.language === 'string' ? { language: parsed.language } : {}),
+            ...(typeof parsed.language === 'string' && parsed.language.trim() ? { language: parsed.language.trim() } : {}),
             content,
           });
           continue;
@@ -170,27 +234,46 @@ function extractUserSpeakFromToolCalls(toolCalls                                
     passthroughToolCalls.push(tc);
   }
 
-  const parts           = [];
-  if (bubbles.length > 0) parts.push(bubbles.join('\n\n'));
-  for (const art of artifacts) {
-    if (art.kind === 'table' || art.kind === 'markdown') {
-      parts.push(`<!-- artifact: ${art.title} -->\n${art.content}`);
-    } else {
-      const lang = art.language ?? (art.kind === 'diff' ? 'diff' : '');
-      parts.push(`\`\`\`${lang}\n// ${art.title}\n${art.content}\n\`\`\``);
-    }
-  }
+  const renderedParts           = [];
+  for (const b of bubbles) renderedParts.push(b);
+  for (const art of artifacts) renderedParts.push(formatArtifactBlock(art));
   if (voiceNote) {
-    parts.push(`> [Voice Note${voiceNote.emotion ? ` · ${voiceNote.emotion}` : ''}] ${voiceNote.text}`);
+    renderedParts.push(`> [Voice Note${voiceNote.emotion ? ` · ${voiceNote.emotion}` : ''}] ${voiceNote.text}`);
   }
 
   return {
-    renderedContent: parts.join('\n\n'),
+    hasSpeak: bubbles.length > 0 || artifacts.length > 0 || Boolean(voiceNote),
+    renderedContent: renderedParts.join('\n\n'),
+    renderedParts,
     bubbles,
     artifacts,
     voiceNote,
     passthroughToolCalls,
   };
+}
+
+function extractIncomingBearer(req                 )         {
+  const auth = req.headers.authorization;
+  if (typeof auth !== 'string') return '';
+  const match = auth.match(/^Bearer\s+(.+)$/i);
+  const token = match?.[1]?.trim() ?? '';
+  if (!token || token === 'unused' || token === 'nb-speak-local' || token === 'dummy' || token === 'none') {
+    return '';
+  }
+  return token;
+}
+
+function normalizeRestoredStreamToolCalls(calls                                       )                               {
+  if (!calls || calls.length === 0) return undefined;
+  return calls.map((tc, idx) => ({
+    index: idx,
+    id: tc.id && tc.id.trim() ? tc.id : `call_dsh_${idx + 1}`,
+    type: tc.type || 'function',
+    function: {
+      name: tc.function?.name ?? '',
+      arguments: tc.function?.arguments ?? '{}',
+    },
+  }));
 }
 
                                              
@@ -311,7 +394,13 @@ export async function startDshOpenAiBridge(options
     try {
       const sliderCfg = state.getSliderConfig();
       const bubbleMode = state.getBubbleJoinMode();
-      const conn = await state.getUpstreamConnection();
+      const rawConn = await state.getUpstreamConnection();
+      const incomingBearer = extractIncomingBearer(req);
+      const conn                             =
+        !rawConn.cloudApiKey && incomingBearer
+          ? { ...rawConn, cloudApiKey: incomingBearer, voiceModelApiKey: rawConn.voiceModelApiKey || incomingBearer }
+          : rawConn;
+
       const requestedModel = typeof reqBody.model === 'string' ? reqBody.model : undefined;
       const { upstreamModel, personaId } = resolveUpstreamModelSpec(
         requestedModel,
@@ -382,7 +471,7 @@ export async function startDshOpenAiBridge(options
 
             if (conn.mode === 'skill' && rawCalls && rawCalls.length > 0) {
               const extracted = extractUserSpeakFromToolCalls(rawCalls);
-              if (extracted.bubbles.length > 0 || extracted.artifacts.length > 0) {
+              if (extracted.hasSpeak) {
                 message.content = [existingContent, extracted.renderedContent].filter(Boolean).join('\n\n');
                 speakMeta = {
                   bubbles: extracted.bubbles,
@@ -430,6 +519,12 @@ export async function startDshOpenAiBridge(options
       const bubbleFormatter = new BubbleStreamFormatter(bubbleMode);
       const bufferedSkillCalls = new Map                                                         ();
       let sseBuffer = '';
+      let streamId = 'chatcmpl-nb-speak';
+      let streamModel = requestedModel ?? upstreamModel;
+      let streamCreated = Math.floor(Date.now() / 1000);
+      let upstreamFinishReason                = null;
+      let lastUsage         ;
+      let streamedPlainContent = '';
 
       while (true) {
         const { value, done } = await reader.read();
@@ -451,6 +546,63 @@ export async function startDshOpenAiBridge(options
 
           try {
             const chunkObj = JSON.parse(dataStr)                           ;
+            if (typeof chunkObj.id === 'string' && chunkObj.id) streamId = chunkObj.id;
+            if (typeof chunkObj.model === 'string' && chunkObj.model) streamModel = chunkObj.model;
+            if (typeof chunkObj.created === 'number') streamCreated = chunkObj.created;
+            if (chunkObj.usage !== undefined && chunkObj.usage !== null) lastUsage = chunkObj.usage;
+
+            if (conn.mode === 'skill') {
+              let shouldEmitLiveChunk = false;
+              if (Array.isArray(chunkObj.choices)) {
+                chunkObj.choices = chunkObj.choices.map((c) => {
+                  if (typeof c !== 'object' || c === null) return c;
+                  const choice = { ...(c                           ) };
+                  if (typeof choice.finish_reason === 'string' && choice.finish_reason) {
+                    upstreamFinishReason = choice.finish_reason;
+                  }
+                  choice.finish_reason = null;
+
+                  if (typeof choice.delta === 'object' && choice.delta !== null) {
+                    const delta = { ...(choice.delta                           ) };
+                    if (typeof delta.content === 'string' && delta.content.length > 0) {
+                      delta.content = bubbleFormatter.push(delta.content);
+                      streamedPlainContent += delta.content;
+                      shouldEmitLiveChunk = true;
+                    }
+                    if (
+                      (typeof delta.reasoning_content === 'string' && delta.reasoning_content.length > 0) ||
+                      (typeof delta.reasoning === 'string' && delta.reasoning.length > 0) ||
+                      (typeof delta.reasoning_text === 'string' && delta.reasoning_text.length > 0) ||
+                      (Array.isArray(delta.reasoning_details) && delta.reasoning_details.length > 0)
+                    ) {
+                      shouldEmitLiveChunk = true;
+                    }
+                    if (Array.isArray(delta.tool_calls)) {
+                      delta.tool_calls.forEach((rawTc, idx) => {
+                        if (typeof rawTc !== 'object' || rawTc === null) return;
+                        const tc = rawTc                  ;
+                        const slotIdx = typeof tc.index === 'number' ? tc.index : idx;
+                        const cur = bufferedSkillCalls.get(slotIdx) ?? { id: '', name: '', arguments: '' };
+                        if (tc.id) cur.id = tc.id;
+                        if (tc.function?.name) cur.name += tc.function.name;
+                        if (tc.function?.arguments) cur.arguments += tc.function.arguments;
+                        bufferedSkillCalls.set(slotIdx, cur);
+                      });
+                      delete delta.tool_calls;
+                    }
+                    choice.delta = delta;
+                  }
+                  return choice;
+                });
+              }
+              if (shouldEmitLiveChunk) {
+                const liveChunk = { ...chunkObj };
+                delete liveChunk.usage;
+                res.write(`data: ${JSON.stringify(liveChunk)}\n\n`);
+              }
+              continue;
+            }
+
             if (Array.isArray(chunkObj.choices)) {
               chunkObj.choices = chunkObj.choices.map((c) => {
                 if (typeof c !== 'object' || c === null) return c;
@@ -461,39 +613,9 @@ export async function startDshOpenAiBridge(options
                     delta.content = bubbleFormatter.push(delta.content);
                   }
                   if (Array.isArray(delta.tool_calls)) {
-                    if (conn.mode === 'skill') {
-                      const passthroughDeltaCalls                   = [];
-                      delta.tool_calls.forEach((rawTc, idx) => {
-                        if (typeof rawTc !== 'object' || rawTc === null) return;
-                        const tc = rawTc                  ;
-                        const slotIdx = typeof tc.index === 'number' ? tc.index : idx;
-                        const cur = bufferedSkillCalls.get(slotIdx) ?? { id: '', name: '', arguments: '' };
-                        if (tc.id) cur.id = tc.id;
-                        if (tc.function?.name) cur.name += tc.function.name;
-                        if (tc.function?.arguments) cur.arguments += tc.function.arguments;
-                        bufferedSkillCalls.set(slotIdx, cur);
-
-                        if (cur.name && cur.name !== 'send_message' && cur.name !== 'send_artifact') {
-                          passthroughDeltaCalls.push(tc);
-                        }
-                      });
-                      const restored = restoreOpenAIToolCalls(passthroughDeltaCalls, remapTable);
-                      if (restored && restored.length > 0) {
-                        delta.tool_calls = restored;
-                      } else {
-                        delete delta.tool_calls;
-                      }
-                    } else {
-                      delta.tool_calls = restoreOpenAIToolCalls(delta.tool_calls                    , remapTable);
-                    }
+                    delta.tool_calls = restoreOpenAIToolCalls(delta.tool_calls                    , remapTable);
                   }
                   choice.delta = delta;
-                }
-                if (conn.mode === 'skill' && choice.finish_reason === 'tool_calls' && bufferedSkillCalls.size > 0) {
-                  const allUserSpeak = [...bufferedSkillCalls.values()].every(
-                    (s) => s.name === 'send_message' || s.name === 'send_artifact',
-                  );
-                  if (allUserSpeak) choice.finish_reason = 'stop';
                 }
                 return choice;
               });
@@ -505,34 +627,88 @@ export async function startDshOpenAiBridge(options
         }
       }
 
-      if (conn.mode === 'skill' && bufferedSkillCalls.size > 0) {
+      if (conn.mode === 'skill') {
         const assembled                   = [...bufferedSkillCalls.entries()]
           .sort(([a], [b]) => a - b)
-          .map(([, slot]) => ({
-            id: slot.id || 'call_speak',
+          .map(([, slot], idx) => ({
+            id: slot.id || `call_speak_${idx + 1}`,
             type: 'function',
             function: { name: slot.name, arguments: slot.arguments },
           }));
         const extracted = extractUserSpeakFromToolCalls(assembled);
-        if (extracted.renderedContent) {
-          const contentChunk = {
-            id: 'chatcmpl-nb-speak',
+        const restoredPassthrough = normalizeRestoredStreamToolCalls(
+          restoreOpenAIToolCalls(extracted.passthroughToolCalls, remapTable),
+        );
+
+        if (extracted.renderedParts.length > 0) {
+          extracted.renderedParts.forEach((part, idx) => {
+            const prefix = idx === 0 ? (streamedPlainContent.trim().length > 0 ? '\n\n' : '') : '\n\n';
+            const isLastPart = idx === extracted.renderedParts.length - 1;
+            const contentChunk                          = {
+              id: streamId,
+              object: 'chat.completion.chunk',
+              created: streamCreated,
+              model: streamModel,
+              choices: [
+                {
+                  index: 0,
+                  delta: { ...(idx === 0 && !streamedPlainContent ? { role: 'assistant' } : {}), content: `${prefix}${part}` },
+                  finish_reason: null,
+                },
+              ],
+              ...(isLastPart
+                ? {
+                    nb_speak: {
+                      bubbles: extracted.bubbles,
+                      artifacts: extracted.artifacts,
+                      ...(extracted.voiceNote ? { voice_note: extracted.voiceNote } : {}),
+                    },
+                  }
+                : {}),
+            };
+            res.write(`data: ${JSON.stringify(contentChunk)}\n\n`);
+          });
+        }
+
+        if (restoredPassthrough && restoredPassthrough.length > 0) {
+          const toolChunk = {
+            id: streamId,
             object: 'chat.completion.chunk',
+            created: streamCreated,
+            model: streamModel,
             choices: [
               {
                 index: 0,
-                delta: { role: 'assistant', content: extracted.renderedContent },
-                finish_reason: 'stop',
+                delta: { tool_calls: restoredPassthrough },
+                finish_reason: null,
               },
             ],
-            nb_speak: {
-              bubbles: extracted.bubbles,
-              artifacts: extracted.artifacts,
-              ...(extracted.voiceNote ? { voice_note: extracted.voiceNote } : {}),
-            },
           };
-          res.write(`data: ${JSON.stringify(contentChunk)}\n\n`);
+          res.write(`data: ${JSON.stringify(toolChunk)}\n\n`);
         }
+
+        const finalFinishReason =
+          restoredPassthrough && restoredPassthrough.length > 0
+            ? 'tool_calls'
+            : extracted.hasSpeak
+              ? 'stop'
+              : (upstreamFinishReason ?? 'stop');
+
+        const closingChunk                          = {
+          id: streamId,
+          object: 'chat.completion.chunk',
+          created: streamCreated,
+          model: streamModel,
+          choices: [
+            {
+              index: 0,
+              delta: {},
+              finish_reason: finalFinishReason,
+            },
+          ],
+          ...(lastUsage !== undefined ? { usage: lastUsage } : {}),
+        };
+        res.write(`data: ${JSON.stringify(closingChunk)}\n\n`);
       }
 
       res.write('data: [DONE]\n\n');

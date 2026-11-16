@@ -30,6 +30,9 @@ export function parseCliArgs(argv) {
   let runtimeMode = 'skill';
   let preset = 'neutral_peer';
   let upstreamUrl = '';
+  let cloudModel = '';
+  let apiKeyRef = '';
+  let wireProvider = false;
 
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i];
@@ -42,6 +45,9 @@ export function parseCliArgs(argv) {
     else if (arg === '--runtime-mode' && argv[i + 1]) runtimeMode = argv[++i];
     else if (arg === '--preset' && argv[i + 1]) preset = argv[++i];
     else if (arg === '--upstream-url' && argv[i + 1]) upstreamUrl = argv[++i];
+    else if (arg === '--cloud-model' && argv[i + 1]) cloudModel = argv[++i];
+    else if (arg === '--api-key-ref' && argv[i + 1]) apiKeyRef = argv[++i];
+    else if (arg === '--wire-provider') wireProvider = true;
   }
 
   const resolvedHome = path.resolve(
@@ -58,6 +64,9 @@ export function parseCliArgs(argv) {
     runtimeMode: runtimeMode === 'voice-model' ? 'voice-model' : 'skill',
     preset,
     upstreamUrl: upstreamUrl.trim(),
+    cloudModel: cloudModel.trim(),
+    apiKeyRef: apiKeyRef.trim(),
+    wireProvider,
     pluginRoot: PLUGIN_ROOT,
   };
 }
@@ -107,6 +116,9 @@ export function runInstaller(options) {
     runtimeMode = 'skill',
     preset = 'neutral_peer',
     upstreamUrl = '',
+    cloudModel = '',
+    apiKeyRef = '',
+    wireProvider = false,
     pluginRoot = PLUGIN_ROOT,
   } = options;
   const profileDir = path.join(dshHome, 'profiles', profile);
@@ -176,20 +188,93 @@ export function runInstaller(options) {
   const nextManifestText = JSON.stringify(manifest, null, 2) + '\n';
 
   let nextPatchText = origPatch ?? DEFAULT_PATCH_TEMPLATE;
-  if (upstreamUrl || bridgePort !== 18091 || runtimeMode !== 'skill' || preset !== 'neutral_peer') {
+  if (
+    upstreamUrl ||
+    cloudModel ||
+    apiKeyRef ||
+    wireProvider ||
+    bridgePort !== 18091 ||
+    runtimeMode !== 'skill' ||
+    preset !== 'neutral_peer'
+  ) {
+    const bridgeBaseUrl = `http://127.0.0.1:${bridgePort}/v1`;
+    const effectiveModel = cloudModel || 'deepseek-chat';
+    const effectiveKeyRef = apiKeyRef || 'NB_SPEAK_API_KEY';
     const lines = [
       '- id: nb-speak',
       '  config:',
-      `    runtimeMode: ${runtimeMode}`,
-      `    preset: ${preset}`,
+      `    runtimeMode: ${JSON.stringify(runtimeMode)}`,
+      `    preset: ${JSON.stringify(preset)}`,
       `    bridgePort: ${bridgePort}`,
     ];
     if (upstreamUrl) {
       lines.push(
         runtimeMode === 'voice-model'
-          ? `    voiceModelBaseUrl: ${upstreamUrl}`
-          : `    cloudBaseUrl: ${upstreamUrl}`,
+          ? `    voiceModelBaseUrl: ${JSON.stringify(upstreamUrl)}`
+          : `    cloudBaseUrl: ${JSON.stringify(upstreamUrl)}`,
       );
+    }
+    if (cloudModel) {
+      lines.push(`    defaultCloudModel: ${JSON.stringify(cloudModel)}`);
+    }
+    if (apiKeyRef) {
+      lines.push(`    apiKeyRef: ${JSON.stringify(apiKeyRef)}`);
+    }
+    if (wireProvider) {
+      lines.push(
+        '- id: llm-pi-ai',
+        '  config:',
+        '    providers:',
+        '      nb-speak:',
+        '        displayName: "nb-speak Bridge"',
+        `        apiKeyEnv: ${JSON.stringify(effectiveKeyRef)}`,
+        '        api: "openai-completions"',
+        `        baseURL: ${JSON.stringify(bridgeBaseUrl)}`,
+        '        defaultMaxTokens: 32768',
+        '        compat:',
+        '          supportsStore: false',
+        '          supportsDeveloperRole: false',
+        '          maxTokensField: "max_tokens"',
+        '          requiresReasoningContentOnAssistantMessages: true',
+        '          supportsStrictMode: false',
+        '        models:',
+        `          - id: ${JSON.stringify(effectiveModel)}`,
+        `            name: ${JSON.stringify(effectiveModel)}`,
+        '            contextWindow: 500000',
+        '            input:',
+        '              - text',
+        '          - id: "nb-speak:neutral"',
+        '            name: "nb-speak · Neutral Peer"',
+        '            contextWindow: 500000',
+        '            input:',
+        '              - text',
+        '          - id: "nb-speak:sharp"',
+        '            name: "nb-speak · Sharp Tech Lead"',
+        '            contextWindow: 500000',
+        '            input:',
+        '              - text',
+        '          - id: "nb-speak:warm"',
+        '            name: "nb-speak · Warm Companion"',
+        '            contextWindow: 500000',
+        '            input:',
+        '              - text',
+        '          - id: "nb-speak:sre"',
+        '            name: "nb-speak · Calm SRE Relay"',
+        '            contextWindow: 500000',
+        '            input:',
+        '              - text',
+        '- id: agent-default-model',
+        '  config:',
+        '    provider: "nb-speak"',
+        `    model: ${JSON.stringify(effectiveModel)}`,
+      );
+      if (profile === 'web' || profile === 'desktop') {
+        lines.push(
+          '- id: agent-preset-registry',
+          '  config:',
+          '    default: "nb-speak"',
+        );
+      }
     }
     nextPatchText = `${lines.join('\n')}\n`;
   }
