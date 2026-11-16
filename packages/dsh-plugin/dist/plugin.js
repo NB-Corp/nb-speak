@@ -2,6 +2,11 @@ import { createRequire } from 'node:module';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { startDshOpenAiBridge,                          } from './http-bridge.js';
+import {
+  registerSpeakToolsAndPrompt,
+                                  
+                           
+} from './dsh-tools.js';
                                                                            
 import {
   resolveUpstreamModelSpec,
@@ -24,12 +29,18 @@ import {
 
                                     
                                             
+                                       
+                                                     
                                               
                                                           
  
 
 export const name = 'nb-speak';
-export const inject = ['credentials'];
+export const inject = {
+  credentials: { required: false },
+  tools: { required: false },
+  systemPrompt: { required: false },
+};
 
                          
                                                                       
@@ -39,6 +50,7 @@ export const inject = ['credentials'];
                                                     
                                                          
                                                           
+                                        
                                                        
                                                             
                                                             
@@ -84,9 +96,11 @@ async function buildSchemaIfAvailable()                   {
     z.number().min(SLIDER_MIN).max(SLIDER_MAX).step(SLIDER_STEP).default(def).description(desc).volatile();
   return z.object({
     runtimeMode: z
-      .union(['skill', 'voice-model']         )
-      .default('skill')
-      .description('Mode A (skill): standard cloud LLMs + chat-human + send_message; Mode B (voice-model): Split-Phase / 4B voice translator')
+      .union(['native', 'skill', 'voice-model']         )
+      .default('native')
+      .description(
+        'native: first-class DSH send_bubble + send_artifact tools & WebUI bubbles on any DSH provider; skill: OpenAI bridge Mode A; voice-model: 4B sidecar Mode B',
+      )
       .volatile(),
     preset: z
       .union(['neutral_peer', 'sharp_lead', 'warm_companion', 'calm_sre', 'custom']         )
@@ -98,14 +112,18 @@ async function buildSchemaIfAvailable()                   {
     sharp_wit: slider(0.1, 'Axis 2: Candid understatement & dry wit (w2)'),
     calm_grounding: slider(0.2, 'Axis 3: Calm incident grounding (w3)'),
     concise_cadence: slider(0.3, 'Axis 4: Mobile thumb-typed brevity bias (w4)'),
-    cloudBaseUrl: z.string().default('https://api.deepseek.com/v1').description('Mode A upstream OpenAI-compatible URL').volatile(),
-    defaultCloudModel: z.string().default('deepseek-chat').description('Mode A upstream model ID').volatile(),
-    voiceModelBaseUrl: z.string().default('http://127.0.0.1:18088/v1').description('Mode B Split-Phase / 4B voice-model URL').volatile(),
-    defaultVoiceModel: z.string().default('nb-speak-voice-v1').description('Mode B base model prefix').volatile(),
-    apiKeyRef: z.string().default('NB_SPEAK_API_KEY').description('Upstream credential env/store key').volatile(),
+    registerGlobalTools: z
+      .boolean()
+      .default(true)
+      .description('Register send_bubble + send_artifact across all DSH agent presets (including Standard mode)'),
+    cloudBaseUrl: z.string().default('https://api.deepseek.com/v1').description('Bridge Mode A upstream OpenAI-compatible URL').volatile(),
+    defaultCloudModel: z.string().default('deepseek-chat').description('Bridge Mode A upstream model ID').volatile(),
+    voiceModelBaseUrl: z.string().default('http://127.0.0.1:18088/v1').description('Bridge Mode B Split-Phase / 4B voice-model URL').volatile(),
+    defaultVoiceModel: z.string().default('nb-speak-voice-v1').description('Bridge Mode B base model prefix').volatile(),
+    apiKeyRef: z.string().default('NB_SPEAK_API_KEY').description('Bridge upstream credential env/store key').volatile(),
     customSoul: z.string().default('').description('Optional custom SOUL.md / persona prompt override').volatile(),
     bubbleJoinMode: z.union(['paragraph', 'newline']         ).default('paragraph').volatile(),
-    bridgeEnabled: z.boolean().default(true),
+    bridgeEnabled: z.boolean().default(false),
     bridgeHost: z.string().default('127.0.0.1'),
     bridgePort: z.number().min(0).max(65535).default(18091),
   });
@@ -160,6 +178,8 @@ export async function apply(
     concise_cadence: readVal(config.concise_cadence, 0.3),
   });
 
+  const getCustomSoul = ()         => readVal(config.customSoul, '');
+
   const getUpstreamConnection = async ()                                      => {
     const keyName = readVal(config.apiKeyRef, 'NB_SPEAK_API_KEY');
     const resolvedKey = await resolveCredentialValue(ctx.credentials, env, [
@@ -172,7 +192,7 @@ export async function apply(
     ]);
     const voiceKey = await resolveCredentialValue(ctx.credentials, env, ['NB_SPEAK_VOICE_API_KEY']);
     return {
-      mode: readVal(config.runtimeMode, 'skill'),
+      mode: readVal(config.runtimeMode, 'native'),
       cloudBaseUrl: readVal(config.cloudBaseUrl, env.NB_SPEAK_UPSTREAM_URL ?? 'https://api.deepseek.com/v1'),
       cloudApiKey: resolvedKey,
       defaultCloudModel: readVal(config.defaultCloudModel, env.NB_SPEAK_MODEL ?? 'deepseek-chat'),
@@ -182,8 +202,19 @@ export async function apply(
     };
   };
 
+  let disposeNativeTools                          ;
+  const shouldRegisterGlobal = config.registerGlobalTools ?? true;
+  if (shouldRegisterGlobal && ctx.tools && ctx.systemPrompt && readVal(config.runtimeMode, 'native') === 'native') {
+    disposeNativeTools = registerSpeakToolsAndPrompt(ctx.tools, ctx.systemPrompt, {
+      getSliderConfig,
+      getCustomSoul,
+    });
+  }
+
   let bridgeServer                                 ;
-  if (config.bridgeEnabled ?? true) {
+  const currentMode = readVal(config.runtimeMode, 'native');
+  const shouldStartBridge = config.bridgeEnabled ?? currentMode !== 'native';
+  if (shouldStartBridge) {
     bridgeServer = await startDshOpenAiBridge({
       host: config.bridgeHost ?? '127.0.0.1',
       port: config.bridgePort ?? 18091,
@@ -191,7 +222,7 @@ export async function apply(
         getSliderConfig,
         getUpstreamConnection,
         getBubbleJoinMode: () => readVal(config.bubbleJoinMode, 'paragraph'),
-        getCustomSoul: () => readVal(config.customSoul, ''),
+        getCustomSoul,
         fetchImpl: overrides.fetchImpl,
       },
     });
@@ -199,17 +230,23 @@ export async function apply(
 
   ctx.provide('nbSpeak', {
     ...(bridgeServer ? { bridgeBaseUrl: bridgeServer.baseUrl, bridgePort: bridgeServer.port } : {}),
+    getSliderConfig,
+    getCustomSoul,
     currentSpec: () =>
       resolveUpstreamModelSpec(
         undefined,
         getSliderConfig(),
-        readVal(config.runtimeMode, 'skill'),
+        readVal(config.runtimeMode, 'native'),
         readVal(config.defaultCloudModel, 'deepseek-chat'),
         readVal(config.defaultVoiceModel, 'nb-speak-voice-v1'),
       ),
   });
 
   ctx.effect(() => async () => {
+    if (disposeNativeTools) {
+      disposeNativeTools();
+      disposeNativeTools = undefined;
+    }
     if (bridgeServer) {
       await bridgeServer.close();
       bridgeServer = undefined;

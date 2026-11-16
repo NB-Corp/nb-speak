@@ -134,12 +134,12 @@ export function formatVoiceModelTag(weights: StyleWeightTuple, baseModel = 'nb-s
   return `${cleanBase}|${weights.map((w) => Number(w).toFixed(3)).join(',')}`;
 }
 
-export type DshRuntimeMode = 'skill' | 'voice-model';
+export type DshRuntimeMode = 'native' | 'skill' | 'voice-model';
 
 export function resolveUpstreamModelSpec(
   requestedModel: string | undefined,
   sliderConfig: StyleSliderConfig,
-  runtimeMode: DshRuntimeMode = 'skill',
+  runtimeMode: DshRuntimeMode = 'native',
   defaultCloudModel = 'deepseek-chat',
   defaultVoiceModel = 'nb-speak-voice-v1',
 ): { readonly upstreamModel: string; readonly weights: StyleWeightTuple; readonly personaId: Exclude<DshPersonaPresetId, 'custom'> } {

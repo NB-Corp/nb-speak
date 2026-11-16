@@ -17,6 +17,16 @@ import {
   restoreToolNameFromUpstream,
 } from '../src/tool-remap.ts';
 import { startDshOpenAiBridge } from '../src/http-bridge.ts';
+import {
+  createSendArtifactToolDefinition,
+  createSendBubbleToolDefinition,
+} from '../src/dsh-tools.ts';
+import {
+  computeWaveformHeights,
+  NB_SPEAK_TURN_DATA_KEY,
+  nbSpeakTurnDefinition,
+  parsePipeTable,
+} from '../src/client-model.ts';
 import { apply as applyPlugin } from '../src/plugin.ts';
 import { runInstaller } from '../scripts/install-dsh.mjs';
 
@@ -492,4 +502,254 @@ test('install-dsh.mjs supports reversible --dry-run / --apply / --uninstall with
   } finally {
     fs.rmSync(fakeHome, { recursive: true, force: true });
   }
+});
+
+const ALLOWED_DSH_SCHEMA_KEYS = new Set([
+  'type',
+  'oneOf',
+  'properties',
+  'required',
+  'additionalProperties',
+  'items',
+  'enum',
+  'const',
+  'description',
+  'title',
+  'default',
+  'examples',
+]);
+
+function assertStrictDshSchemaSubset(node: unknown, trail = 'root'): void {
+  if (!node || typeof node !== 'object' || Array.isArray(node)) return;
+  for (const [k, v] of Object.entries(node as Record<string, unknown>)) {
+    assert.ok(ALLOWED_DSH_SCHEMA_KEYS.has(k), `Forbidden DSH schema keyword "${k}" at ${trail}`);
+    if (k === 'properties' && v && typeof v === 'object') {
+      for (const [propName, propSchema] of Object.entries(v as Record<string, unknown>)) {
+        assertStrictDshSchemaSubset(propSchema, `${trail}.properties.${propName}`);
+      }
+    } else if (k === 'items') {
+      assertStrictDshSchemaSubset(v, `${trail}.items`);
+    }
+  }
+}
+
+test('Native DSH send_bubble + send_artifact obey strict DSH JSON Schema subset and register in native mode', async () => {
+  const bubbleDef = createSendBubbleToolDefinition() as Record<string, any>;
+  const artifactDef = createSendArtifactToolDefinition() as Record<string, any>;
+  assertStrictDshSchemaSubset(bubbleDef.parameters, 'send_bubble.parameters');
+  assertStrictDshSchemaSubset(bubbleDef.output.schema, 'send_bubble.output');
+  assertStrictDshSchemaSubset(artifactDef.parameters, 'send_artifact.parameters');
+  assertStrictDshSchemaSubset(artifactDef.output.schema, 'send_artifact.output');
+
+  let concludeCalls = 0;
+  const bubbleOut = await bubbleDef.execute(
+    {
+      bubbles: ['气泡 1：全仓库零第三方依赖。', '桥接命令放下面卡片了'],
+      voice_note: { text: '直接用 Node 二十二以上就能跑起来', emotion: 'warm' },
+    },
+    {
+      concludeTurn() {
+        concludeCalls += 1;
+      },
+    },
+  );
+  assert.equal(bubbleOut.delivered, true);
+  assert.equal(bubbleOut.bubbleCount, 2);
+  assert.equal(bubbleOut.hasVoiceNote, true);
+  assert.equal(concludeCalls, 1);
+
+  await bubbleDef.execute(
+    { bubbles: ['先扫一下目录'], end_turn: false },
+    {
+      concludeTurn() {
+        concludeCalls += 1;
+      },
+    },
+  );
+  assert.equal(concludeCalls, 1);
+  const bubbleMeta = bubbleDef.output.presentationMeta(
+    {
+      bubbles: ['气泡 1：全仓库零第三方依赖。', '桥接命令放下面卡片了'],
+      voice_note: { text: '直接用 Node 二十二以上就能跑起来', emotion: 'warm' },
+    },
+    bubbleOut,
+  );
+  assert.deepEqual(bubbleMeta.bubbles, ['全仓库零第三方依赖', '桥接命令放下面卡片了']);
+  assert.equal(bubbleMeta.voiceNote.emotion, 'warm');
+  assert.ok(bubbleMeta.voiceNote.durationSeconds >= 2);
+
+  const artOut = await artifactDef.execute({
+    title: 'orders.sql',
+    kind: 'code',
+    language: 'sql',
+    content: '```sql\nSELECT id FROM orders LIMIT 20;\n```',
+  });
+  assert.equal(artOut.lineCount, 1);
+  const artMeta = artifactDef.output.presentationMeta(
+    {
+      title: 'orders.sql',
+      kind: 'code',
+      language: 'sql',
+      content: '```sql\nSELECT id FROM orders LIMIT 20;\n```',
+    },
+    artOut,
+  );
+  assert.equal(artMeta.content, 'SELECT id FROM orders LIMIT 20;');
+
+  const registeredTools: string[] = [];
+  let promptTextFn: (() => string) | undefined;
+  let cleanupNative: (() => Promise<void> | void) | undefined;
+  let providedService: Record<string, unknown> | undefined;
+
+  await applyPlugin(
+    {
+      tools: {
+        register(def: Record<string, unknown>) {
+          registeredTools.push(String(def.name));
+          return () => {};
+        },
+      },
+      systemPrompt: {
+        section(entry) {
+          promptTextFn = typeof entry.text === 'function' ? () => entry.text({}) : () => entry.text;
+          return () => {};
+        },
+      },
+      provide(_name, val) {
+        providedService = val as Record<string, unknown>;
+      },
+      effect(factory) {
+        cleanupNative = factory();
+      },
+    },
+    {
+      runtimeMode: 'native',
+      preset: 'sharp_lead',
+    },
+  );
+  assert.deepEqual(registeredTools, ['send_bubble', 'send_artifact']);
+  assert.equal(providedService?.bridgeBaseUrl, undefined);
+  assert.ok(promptTextFn?.().includes('send_bubble'));
+  assert.ok(promptTextFn?.().includes('sharp, candid tech lead'));
+  await cleanupNative?.();
+});
+
+test('WebUI client turn reducer + compiled dist/client.js ModuleLoader bundle render bubbles, voice note, and artifact card', () => {
+  let state = nbSpeakTurnDefinition.start({}, { event: { type: 'turn/start', data: { turn: 3 } } });
+  state = nbSpeakTurnDefinition.update(
+    { state },
+    {
+      event: {
+        type: 'tool/call',
+        seq: 10,
+        data: {
+          turn: 3,
+          callId: 'call_art_1',
+          name: 'send_artifact',
+          arguments: {
+            title: 'ttl_lru.py',
+            kind: 'code',
+            language: 'python',
+            content: 'class TtlLru:\n    pass',
+          },
+        },
+      },
+    },
+  );
+  state = nbSpeakTurnDefinition.update(
+    { state },
+    {
+      event: {
+        type: 'tool/call',
+        seq: 11,
+        data: {
+          turn: 3,
+          callId: 'call_bub_1',
+          name: 'send_bubble',
+          arguments: JSON.stringify({
+            bubbles: ['八成是在锁里调了回调。', '无死锁版本放下面了'],
+            voice_note: { text: '先把伞买了别吹冷风', emotion: 'warm' },
+          }),
+        },
+      },
+    },
+  );
+  const loc = nbSpeakTurnDefinition.buildLocationData({ state }, 'turn', null);
+  assert.ok(loc);
+  assert.equal(loc.key, NB_SPEAK_TURN_DATA_KEY);
+  assert.deepEqual(loc.value.bubbles[0]!.bubbles, ['八成是在锁里调了回调', '无死锁版本放下面了']);
+  assert.equal(loc.value.artifacts[0]!.title, 'ttl_lru.py');
+  assert.equal(computeWaveformHeights('先把伞买了别吹冷风', 22).length, 22);
+  assert.equal(parsePipeTable('| col | val |\n| --- | --- |\n| a | 1 |')?.rows[0]?.[0], 'a');
+
+  const clientJsPath = path.resolve(import.meta.dirname, '..', 'dist', 'client.js');
+  assert.ok(fs.existsSync(clientJsPath), 'Expected dist/client.js to be built by scripts/build.mjs');
+  const clientCode = fs.readFileSync(clientJsPath, 'utf8');
+
+  let loadedModule: { id: string; factory: (req: (id: string) => unknown) => any } | undefined;
+  const fakeWindow = {
+    __ModuleLoader__: {
+      load(entry: { id: string; factory: (req: (id: string) => unknown) => any }) {
+        loadedModule = entry;
+      },
+    },
+  };
+  new Function('window', clientCode)(fakeWindow);
+  assert.equal(loadedModule?.id, '@nb-corp/nb-speak-dsh');
+
+  const fakeReact = {
+    createElement: (type: unknown, props: Record<string, unknown> | null, ...children: unknown[]): unknown =>
+      typeof type === 'function'
+        ? (type as (p: Record<string, unknown>) => unknown)({ ...(props ?? {}), children: children.flat() })
+        : { type, props: props ?? {}, children: children.flat() },
+    useState: <T>(init: T): [T, (v: T) => void] => [init, () => {}],
+    useRef: <T>(init: T) => ({ current: init }),
+    useMemo: <T>(fn: () => T) => fn(),
+    useEffect: () => {},
+  };
+  const clientPlugin = loadedModule!.factory((modId: string) => {
+    assert.equal(modId, 'react');
+    return fakeReact;
+  });
+
+  const registeredSlots: Array<{ meta: Record<string, unknown>; component: (props: any) => any }> = [];
+  let registeredTurnDef: unknown;
+  clientPlugin.apply({
+    effect(fn: () => unknown) {
+      fn();
+    },
+    locale: { register: () => () => {} },
+    uiConversation: {
+      events: {
+        register(def: unknown) {
+          registeredTurnDef = def;
+          return () => {};
+        },
+      },
+    },
+    slots: {
+      inject(_name: string, cb: () => unknown) {
+        cb();
+      },
+      register(meta: Record<string, unknown>, component: (props: any) => any) {
+        registeredSlots.push({ meta, component });
+        return () => {};
+      },
+    },
+  });
+
+  assert.ok(registeredTurnDef);
+  const turnTailSlot = registeredSlots.find((s) => s.meta.name === 'conversation.chat.turnTail');
+  assert.ok(turnTailSlot);
+  assert.equal(turnTailSlot.meta.order, -10);
+  const renderedTree = JSON.stringify(
+    turnTailSlot.component({
+      turn: {
+        data: new Map([[NB_SPEAK_TURN_DATA_KEY, loc.value]]),
+      },
+    }),
+  );
+  assert.ok(renderedTree.includes('nb-speak-bubble'));
+  assert.ok(renderedTree.includes('nb-speak-voice-pill'));
+  assert.ok(renderedTree.includes('nb-speak-artifact-card'));
 });

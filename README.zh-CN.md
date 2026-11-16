@@ -154,7 +154,11 @@ data: [DONE]
 
 ## DeepSeek Harness 插件指南 (`@nb-corp/nb-speak-dsh`)
 
-[`packages/dsh-plugin`](packages/dsh-plugin) 为 DeepSeek Harness (`DSH`) 提供零侵入的 Cordis 插件与本地回环桥接（默认 `127.0.0.1:18091`），同时覆盖云端推理模型与专用语音小模型。
+[`packages/dsh-plugin`](packages/dsh-plugin) 为 DeepSeek Harness (`DSH`) 提供全栈原生 Cordis 宿主插件与 WebUI 前端气泡扩展 (`exports["./client"]`)，并保留面向 4B 语音侧车的回环 OpenAI 桥接能力。
+
+<p align="center">
+  <img src="docs/assets/dsh-webui-bubbles.png" alt="原生 DSH 长文 Markdown 墙 vs nb-speak DSH 原生 IM 短气泡、可播放语音条与可复制制品卡同屏实测对比" width="1100">
+</p>
 
 ### 1. 安全安装、隔离沙箱验证与字节级可逆卸载
 
@@ -168,32 +172,28 @@ node packages/dsh-plugin/scripts/install-dsh.mjs --dry-run --profile web
 node packages/dsh-plugin/scripts/install-dsh.mjs --apply \
   --dsh-home .tmp/dsh-sandbox \
   --profile web \
-  --runtime-mode skill \
-  --preset calm_sre \
-  --bridge-port 18091
+  --preset calm_sre
 
-# 3. 正式挂载至当前用户的 web profile
-node packages/dsh-plugin/scripts/install-dsh.mjs --apply --profile web --runtime-mode skill
+# 3. 正式挂载原生 IM 气泡与双工具至当前 web profile（直连任意已配置的 DSH 模型提供商）
+node packages/dsh-plugin/scripts/install-dsh.mjs --apply --profile web
 
 # 4. 一键无损卸载，按字节级快照还原 package.json 与 cordis.patch.yml
 node packages/dsh-plugin/scripts/install-dsh.mjs --uninstall --profile web
 ```
 
-### 2. 双运行模式：Mode A (`skill`) vs. Mode B (`voice-model`)
+### 2. 三种运行模式：`native`（默认） · `skill` · `voice-model`
 
-| 对比项 | Mode A：`skill`（标准云端/本地通用大模型） | Mode B：`voice-model`（Split-Phase / 4B 语音侧车） |
-| --- | --- | --- |
-| **适用上游模型** | `deepseek-v4.1-flash`、`deepseek-chat`、GPT、Claude、Gemini 等任意标准模型 | 专用分阶段模型或 `<0.8s` 4B 语音翻译侧车（`http://127.0.0.1:18088/v1`） |
-| **协议注入机制** | 自动注入 `chat-human` 系统层与面向用户的 `send_message` / `send_artifact` 工具，并将返回的气泡与制品卡合成为 DSH 可读段落 | 将 5 轴连续风格权重编码为模型标签 `nb-speak-voice-v1\|w0,w1,w2,w3,w4`，通过 `BubbleStreamFormatter` 实时将口语单换行扩展为 `\n\n` 气泡段（代码块原样保留） |
-| **推荐场景** | 零额外显卡成本，直接让主力工程 Agent 具备真人聊天体感 | 高频实时陪伴或需要连续 LoRA/Steering 混音控制的生产网关 |
+| 对比项 | `native`（默认：原生双工具 + WebUI 气泡） | `skill`（OpenAI 桥接 Mode A） | `voice-model`（4B 语音侧车 Mode B） |
+| --- | --- | --- | --- |
+| **适用模型** | 直连 DSH 已配置的任意模型渠道（`deepseek`、`cmd/deepseek-v4.1-flash`、OpenAI、Claude、Gemini） | 外部或代理转发的 OpenAI 兼容端点 | 专用分阶段模型或 `<0.8s` 4B 语音翻译侧车（`http://127.0.0.1:18088/v1`） |
+| **前端与工具行为** | 注册原生 `send_bubble`（`exec.concludeTurn()` 单步结轮）与 `send_artifact` 工具；`dist/client.js` 在折叠摘要外直接渲染圆角 IM 聊天气泡、22 柱可播放语音条与一键复制代码/SQL/Diff/表格卡片 | 在 HTTP 桥接层注入 `send_message` + `send_artifact` 并解包为文本段 | 将 5 轴连续权重编码为 `nb-speak-voice-v1\|w0,w1,w2,w3,w4`，通过 `BubbleStreamFormatter` 扩展口语换行 |
+| **推荐场景** | 零代理中转、原生 DSH 气泡与语音交互体验、保留 100% 真实轨迹与缓存命中统计 | 非 WebUI 的通用 OpenAI 客户端接入 | 高频实时陪伴或需要连续 LoRA/Steering 混音控制的生产网关 |
 
-### 3. 子代理 `send_message <-> agent_send_message` 防撞机制
+### 3. 子代理工具零冲突设计
 
-DSH 内置的子代理编排系统本身注册了名为 `send_message` 的内部通信工具（用于向 worker 子代理派发指令）。若直接向模型暴露面向人类聊天的 `send_message({ bubbles })`，就会引发工具重名冲突。
-
-`@nb-corp/nb-speak-dsh` (`src/tool-remap.ts`) 在每次请求进出桥接层时自动维护双向重映射表：
-1. **发往上游模型前**：将 DSH 传入的子代理 `send_message` 工具定义及历史消息中的子代理 `tool_calls` 透明重命名为 `agent_send_message`（同时隔离 `send_artifact` -> `ext_send_artifact`、`send_code_or_doc` -> `ext_send_code_or_doc` 等保留名），再挂载面向人类的 `send_message({ bubbles })`。
-2. **模型响应返回时**：面向人类的 `send_message` / `send_artifact` 由桥接层直接消费渲染为聊天气泡与制品卡；模型发出的 `agent_send_message` 则自动无损还原为 `send_message` 交回 DSH 子代理运行时执行。
+DSH 内置的 `@deepseek-ai/dsh-tool-subagent-control` 使用 `send_message` (`{ agent_id, message }`) 作为父子代理通信工具：
+- 在默认的 **`native` 原生模式**下，面向人类用户的消息投递采用独立的 `send_bubble` 与 `send_artifact` 工具并通过 `exec.concludeTurn()` 直接收束当前轮，DSH 原生 `subagent` 与 `send_message` 工具零改动直通。
+- 在 **`skill` / `voice-model` 桥接模式**下，`src/tool-remap.ts` 自动对请求与响应执行 `send_message <-> agent_send_message` 双向无损重映射，确保上游 `send_message({ bubbles })` 绝不与子代理派发重名。
 
 ### 4. 五轴连续风格权重预算与自定义 `SOUL.md`
 
@@ -308,7 +308,7 @@ NB_SPEAK_API_KEY="sk-..." node packages/core/bin/nb-speak.mjs serve \
 nb-speak/
 ├── packages/
 │   ├── core/                # @nb-corp/nb-speak：双工具协议、流解析器、TS bubble_lint、HTTP/SSE 桥接与 CLI
-│   └── dsh-plugin/          # @nb-corp/nb-speak-dsh：DSH 双模插件、子代理工具防撞重映射与可逆安装器
+│   └── dsh-plugin/          # @nb-corp/nb-speak-dsh：DSH 原生双工具、WebUI 气泡前端与可逆安装器
 ├── skills/
 │   └── chat-human/          # 通用 chat-human 技能 (v0.2.0) + bubble_lint.py + proactive_gate.py
 ├── apps/

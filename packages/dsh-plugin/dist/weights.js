@@ -134,12 +134,12 @@ export function formatVoiceModelTag(weights                  , baseModel = 'nb-s
   return `${cleanBase}|${weights.map((w) => Number(w).toFixed(3)).join(',')}`;
 }
 
-                                                     
+                                                                
 
 export function resolveUpstreamModelSpec(
   requestedModel                    ,
   sliderConfig                   ,
-  runtimeMode                 = 'skill',
+  runtimeMode                 = 'native',
   defaultCloudModel = 'deepseek-chat',
   defaultVoiceModel = 'nb-speak-voice-v1',
 )                                                                                                                                    {

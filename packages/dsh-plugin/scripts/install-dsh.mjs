@@ -27,7 +27,7 @@ export function parseCliArgs(argv) {
   let dshHome = '';
   let profile = 'web';
   let bridgePort = 18091;
-  let runtimeMode = 'skill';
+  let runtimeMode = 'native';
   let preset = 'neutral_peer';
   let upstreamUrl = '';
   let cloudModel = '';
@@ -61,7 +61,8 @@ export function parseCliArgs(argv) {
     dshHome: resolvedHome,
     profile,
     bridgePort: Number.isFinite(bridgePort) && bridgePort >= 0 ? bridgePort : 18091,
-    runtimeMode: runtimeMode === 'voice-model' ? 'voice-model' : 'skill',
+    runtimeMode:
+      runtimeMode === 'voice-model' ? 'voice-model' : runtimeMode === 'skill' ? 'skill' : 'native',
     preset,
     upstreamUrl: upstreamUrl.trim(),
     cloudModel: cloudModel.trim(),
@@ -113,7 +114,7 @@ export function runInstaller(options) {
     dshHome,
     profile,
     bridgePort = 18091,
-    runtimeMode = 'skill',
+    runtimeMode = 'native',
     preset = 'neutral_peer',
     upstreamUrl = '',
     cloudModel = '',
@@ -194,17 +195,19 @@ export function runInstaller(options) {
     apiKeyRef ||
     wireProvider ||
     bridgePort !== 18091 ||
-    runtimeMode !== 'skill' ||
+    runtimeMode !== 'native' ||
     preset !== 'neutral_peer'
   ) {
     const bridgeBaseUrl = `http://127.0.0.1:${bridgePort}/v1`;
     const effectiveModel = cloudModel || 'deepseek-chat';
     const effectiveKeyRef = apiKeyRef || 'NB_SPEAK_API_KEY';
+    const bridgeNeeded = wireProvider || runtimeMode !== 'native';
     const lines = [
       '- id: nb-speak',
       '  config:',
       `    runtimeMode: ${JSON.stringify(runtimeMode)}`,
       `    preset: ${JSON.stringify(preset)}`,
+      `    bridgeEnabled: ${bridgeNeeded ? 'true' : 'false'}`,
       `    bridgePort: ${bridgePort}`,
     ];
     if (upstreamUrl) {

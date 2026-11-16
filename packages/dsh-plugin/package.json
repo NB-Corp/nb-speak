@@ -1,7 +1,8 @@
 {
   "name": "@nb-corp/nb-speak-dsh",
-  "version": "0.2.0",
-  "description": "Universal DeepSeek Harness (DSH) plugin for nb-speak: dual-mode (standard cloud LLM skill mode + Split-Phase / 4B voice-model mode), subagent send_message collision avoidance, continuous persona weights, and reversible CLI installer.",
+  "version": "0.3.0",
+  "description": "Full-stack DeepSeek Harness (DSH) plugin + WebUI client extension for nb-speak: native send_bubble & send_artifact tools, tactile IM chat bubbles, playable voice-note pills, interactive artifact cards, continuous 5-axis persona weights, and optional Mode B voice-model bridge.",
+  "icon": "./icon.svg",
   "license": "MIT",
   "author": "Nai Long 7th <nailong@xter.org>",
   "homepage": "https://nb-corp.github.io/nb-speak/",
@@ -34,6 +35,19 @@
       "types": "./src/plugin.ts",
       "default": "./dist/plugin.js"
     },
+    "./agent": {
+      "types": "./src/agent.ts",
+      "default": "./dist/agent.js"
+    },
+    "./dsh-tools": {
+      "types": "./src/dsh-tools.ts",
+      "default": "./dist/dsh-tools.js"
+    },
+    "./client": "./dist/client.js",
+    "./client-model": {
+      "types": "./src/client-model.ts",
+      "default": "./dist/client-model.js"
+    },
     "./weights": {
       "types": "./src/weights.ts",
       "default": "./dist/weights.js"
@@ -52,6 +66,8 @@
     },
     "./cordis.patch.yml": "./cordis.patch.yml",
     "./presets/*.patch.yml": "./presets/*.patch.yml",
+    "./locale/*.json": "./locale/*.json",
+    "./icon": "./icon.svg",
     "./package.json": "./package.json"
   },
   "dsh": {
@@ -61,6 +77,16 @@
         "./cordis.patch.yml",
         "./presets/nb-speak.patch.yml"
       ]
+    },
+    "client": {
+      "platform": "web",
+      "immediately": true,
+      "inject": [
+        "@deepseek-ai/dsh-client-locale",
+        "@deepseek-ai/dsh-client-ui-conversation",
+        "@deepseek-ai/dsh-client-ui-chat",
+        "@deepseek-ai/dsh-client-ui-tool"
+      ]
     }
   },
   "files": [
@@ -68,6 +94,8 @@
     "src",
     "scripts",
     "presets",
+    "locale",
+    "icon.svg",
     "cordis.patch.yml",
     "LICENSE",
     "README.md"

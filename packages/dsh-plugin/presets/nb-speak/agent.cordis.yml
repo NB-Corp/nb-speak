@@ -116,3 +116,6 @@
 
 - id: present
   name: '@deepseek-ai/dsh-tool-present'
+
+- id: tool-nb-speak
+  name: '@nb-corp/nb-speak-dsh/agent'

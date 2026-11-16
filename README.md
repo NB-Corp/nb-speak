@@ -154,7 +154,11 @@ data: [DONE]
 
 ## DeepSeek Harness Plugin (`@nb-corp/nb-speak-dsh`)
 
-[`packages/dsh-plugin`](packages/dsh-plugin) provides a native Cordis bundle and loopback OpenAI bridge (default `127.0.0.1:18091`) for DeepSeek Harness (`DSH`).
+[`packages/dsh-plugin`](packages/dsh-plugin) ships a full-stack Cordis host plugin and WebUI client extension (`exports["./client"]`) for DeepSeek Harness (`DSH`), plus an optional loopback OpenAI bridge for Split-Phase / 4B voice-translator sidecars.
+
+<p align="center">
+  <img src="docs/assets/dsh-webui-bubbles.png" alt="Vanilla DSH Markdown wall vs. nb-speak native DSH WebUI IM bubbles, playable voice note, and interactive artifact card" width="1100">
+</p>
 
 ### 1. Reversible CLI Lifecycle & Isolated `--dsh-home` Sandboxing
 
@@ -168,32 +172,28 @@ node packages/dsh-plugin/scripts/install-dsh.mjs --dry-run --profile web
 node packages/dsh-plugin/scripts/install-dsh.mjs --apply \
   --dsh-home .tmp/dsh-sandbox \
   --profile web \
-  --runtime-mode skill \
-  --preset calm_sre \
-  --bridge-port 18091
+  --preset calm_sre
 
-# 3. Apply to your active DSH profile
-node packages/dsh-plugin/scripts/install-dsh.mjs --apply --profile web --runtime-mode skill
+# 3. Apply native IM bubbles & tools to your active DSH profile (works directly with any configured DSH model)
+node packages/dsh-plugin/scripts/install-dsh.mjs --apply --profile web
 
 # 4. Byte-for-byte reversible uninstall
 node packages/dsh-plugin/scripts/install-dsh.mjs --uninstall --profile web
 ```
 
-### 2. Dual Runtime Modes: Mode A (`skill`) vs. Mode B (`voice-model`)
+### 2. Three Runtime Modes: `native` (Default) · `skill` · `voice-model`
 
-| Capability | Mode A: `skill` (Standard Cloud / Local LLMs) | Mode B: `voice-model` (Split-Phase / 4B Voice Sidecar) |
-| --- | --- | --- |
-| **Target Models** | `deepseek-v4.1-flash`, `deepseek-chat`, GPT, Claude, Gemini, or any OpenAI-compatible model | Dedicated Split-Phase models or `<0.8s` 4B voice-translator sidecars (`http://127.0.0.1:18088/v1`) |
-| **Wire Behavior** | Injects `chat-human` system contract + user-facing `send_message` & `send_artifact`, rendering user bubbles & cards into DSH `assistant.content` | Encodes continuous 5-axis weights into `nb-speak-voice-v1\|w0,w1,w2,w3,w4` and expands spoken single newlines to `\n\n` paragraphs via `BubbleStreamFormatter` (keeping code fences intact) |
-| **Best For** | Zero extra GPU infra; instant human IM delivery on standard cloud APIs | Sub-second companion gateways or multi-LoRA continuous voice mixing |
+| Capability | `native` (Default — Direct DSH Tools + WebUI) | `skill` (OpenAI Bridge Mode A) | `voice-model` (4B Sidecar Mode B) |
+| --- | --- | --- | --- |
+| **Target Models** | Any configured DSH provider directly (`deepseek`, `cmd/deepseek-v4.1-flash`, OpenAI, Anthropic, Gemini) | External or proxy-routed OpenAI-compatible endpoints | Split-Phase models or `<0.8s` 4B voice-translator sidecars (`http://127.0.0.1:18088/v1`) |
+| **Delivery Surface** | First-class `send_bubble` (`exec.concludeTurn()`) + `send_artifact` DSH tools; `dist/client.js` renders tactile IM bubbles, playable 22-bar voice-note pills, and copyable code/SQL/diff/table cards outside the collapsed step summary | Injects `send_message` + `send_artifact` at the HTTP proxy layer and unwraps bubbles into paragraphs | Encodes 5-axis weights into `nb-speak-voice-v1\|w0,w1,w2,w3,w4` and formats spoken newlines via `BubbleStreamFormatter` |
+| **Best For** | Zero proxy hops, instant WebUI bubbles & voice playback, 100% native DSH trajectory & token telemetry | Non-WebUI OpenAI-compatible clients sharing a DSH host | Sub-second companion gateways or multi-LoRA continuous voice mixing |
 
-### 3. Subagent `send_message <-> agent_send_message` Collision Avoidance
+### 3. Zero-Collision Subagent Orchestration
 
-DSH reserves an internal tool named `send_message` for parent-to-subagent orchestration. Exposing a user-facing `send_message({ bubbles })` tool directly would collide with subagent dispatch.
-
-`@nb-corp/nb-speak-dsh` (`src/tool-remap.ts`) eliminates this collision via per-request bidirectional remapping:
-1. **Outbound to Upstream Model**: DSH's internal `send_message` tool schema and historical subagent `tool_calls` are rewritten to `agent_send_message` (alongside `send_artifact` -> `ext_send_artifact` and `send_code_or_doc` -> `ext_send_code_or_doc`), freeing `send_message` for user-facing chat bubbles.
-2. **Inbound back to DSH**: User-facing `send_message` / `send_artifact` calls are consumed by the bridge into formatted user-visible beats, while any `agent_send_message` tool calls emitted by the model are restored back to `send_message` for DSH's subagent runtime.
+DSH's `@deepseek-ai/dsh-tool-subagent-control` reserves wire name `send_message` (`{ agent_id, message }`) for parent-to-child orchestration:
+- In **`native` mode** (default), user-facing delivery registers as `send_bubble` + `send_artifact`, leaving DSH's `subagent` and `send_message` tools completely untouched while concluding user-facing turns cleanly in one step via `exec.concludeTurn()`.
+- In **`skill` / `voice-model` bridge modes**, `src/tool-remap.ts` bidirectionally remaps DSH's internal `send_message <-> agent_send_message` on every request and response so upstream `send_message({ bubbles })` never collides with subagent dispatch.
 
 ### 4. 5-Axis Continuous Style Budget & Custom `SOUL.md`
 
@@ -308,7 +308,7 @@ NB_SPEAK_API_KEY="sk-..." node packages/core/bin/nb-speak.mjs serve \
 nb-speak/
 ├── packages/
 │   ├── core/                # @nb-corp/nb-speak: protocol, parser, TS bubble_lint, HTTP/SSE bridge & CLI
-│   └── dsh-plugin/          # @nb-corp/nb-speak-dsh: dual-mode DSH plugin, tool-remap & reversible installer
+│   └── dsh-plugin/          # @nb-corp/nb-speak-dsh: native DSH tools, WebUI bubble client & reversible installer
 ├── skills/
 │   └── chat-human/          # Universal chat-human Agent Skill (v0.2.0) + bubble_lint.py + proactive_gate.py
 ├── apps/

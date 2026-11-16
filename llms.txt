@@ -7,7 +7,7 @@
 - `npx skills add NB-Corp/nb-speak` — Install the standalone `chat-human` Agent Skill (`v0.2.0`) into Codex, Claude Code, Kiki, Cursor, or any Agent Skills runtime.
 - `npx --yes github:NB-Corp/nb-speak serve --port 18090 --upstream-url https://api.deepseek.com/v1` — Start the zero-dependency OpenAI-compatible HTTP/SSE bridge server (`nb-speak-bridge`) in front of DeepSeek, OpenAI, Claude, Gemini, or local `llama-server`.
 - `@nb-corp/nb-speak` (`packages/core`) — TypeScript/JavaScript SDK exporting `getOpenAISpeakTools()`, `getAnthropicSpeakTools()`, `getGeminiSpeakTools()`, `normalizeTurnOutput()`, `computeBubbleSchedule()`, `lintTurn()`, and `startSpeakBridge()`.
-- `@nb-corp/nb-speak-dsh` (`packages/dsh-plugin`) — Universal DeepSeek Harness plugin supporting Mode A (`skill` on standard cloud LLMs) and Mode B (`voice-model` on Split-Phase / 4B voice-translator sidecars) with transparent `send_message <-> agent_send_message` subagent tool disambiguation.
+- `@nb-corp/nb-speak-dsh` (`packages/dsh-plugin`) — Full-stack DeepSeek Harness plugin and WebUI client extension: registers native `send_bubble` + `send_artifact` tools (`runtimeMode: native`), renders tactile IM chat bubbles, playable voice-note pills, and copyable artifact cards inside DSH WebUI, and retains optional `skill` / `voice-model` OpenAI bridges with `send_message <-> agent_send_message` subagent disambiguation.
 
 ## Documentation & Canonical Resources
 

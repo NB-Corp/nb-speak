@@ -30,6 +30,41 @@ function compileDir(srcDir, distDir) {
   return count;
 }
 
+function buildDshClientBundle() {
+  const dshSrc = path.join(ROOT, 'packages', 'dsh-plugin', 'src');
+  const dshDist = path.join(ROOT, 'packages', 'dsh-plugin', 'dist');
+  fs.mkdirSync(dshDist, { recursive: true });
+  const cssText = fs.readFileSync(path.join(dshSrc, 'client.css'), 'utf8');
+  const stripForIIFE = (fileName) => {
+    const raw = fs.readFileSync(path.join(dshSrc, fileName), 'utf8');
+    const stripped = stripTypeScriptTypes(raw, { mode: 'strip' });
+    return stripped
+      .replace(/^\s*import\s+[\s\S]*?from\s+['"]\.\/[^'"]+['"];?\s*$/gm, '')
+      .replace(/^\s*export\s+(?=(?:async\s+)?(?:function|const|let|class)\b)/gm, '')
+      .trim();
+  };
+  const modelBody = stripForIIFE('client-model.ts');
+  const uiBody = stripForIIFE('client-ui.ts');
+  const bundle = [
+    '// Auto-generated from @nb-corp/nb-speak-dsh src/{client-model.ts,client-ui.ts,client.css} — DO NOT HAND-EDIT',
+    'window.__ModuleLoader__.load({',
+    "  id: '@nb-corp/nb-speak-dsh',",
+    '  factory(require) {',
+    "    const React = require('react');",
+    `    const NB_SPEAK_CLIENT_CSS = ${JSON.stringify(cssText)};`,
+    '',
+    modelBody,
+    '',
+    uiBody,
+    '',
+    '    return createNbSpeakClientPlugin(React, NB_SPEAK_CLIENT_CSS);',
+    '  },',
+    '});',
+    '',
+  ].join('\n');
+  fs.writeFileSync(path.join(dshDist, 'client.js'), bundle, 'utf8');
+}
+
 function buildBrowserEngine() {
   const coreSrc = path.join(ROOT, 'packages', 'core', 'src');
   const files = ['protocol.ts', 'lint.ts', 'parser.ts'];
@@ -78,6 +113,7 @@ if (!webOnly) {
     path.join(ROOT, 'packages', 'dsh-plugin', 'src'),
     path.join(ROOT, 'packages', 'dsh-plugin', 'dist'),
   );
+  buildDshClientBundle();
 }
 buildBrowserEngine();
 copyDirRecursive(path.join(ROOT, 'apps', 'web', 'src'), path.join(ROOT, 'docs'));
