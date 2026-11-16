@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import { pathToFileURL } from 'node:url';
 import {
   BUDGET_LIMIT,
   BubbleStreamFormatter,
@@ -33,7 +34,7 @@ import {
   parsePipeTable,
 } from '../src/client-model.ts';
 import { apply as applyPlugin } from '../src/plugin.ts';
-import { runInstaller } from '../scripts/install-dsh.mjs';
+import { parseCliArgs, PLUGIN_ROOT, runInstaller } from '../scripts/install-dsh.mjs';
 
 test('5-axis universal weight normalization & skill vs voice-model resolution', () => {
   const projected = computeEffectiveWeights([1.0, 0.8, 0.8, 0.4, 0.3]);
@@ -215,7 +216,7 @@ test('DSH bridge supports Mode A (JSON + multi-chunk SSE unwrapping + pure artif
                               title: 'start-bridge.sh',
                               kind: 'code',
                               language: 'bash',
-                              content: 'node packages/core/bin/nb-speak.mjs serve --port 18090',
+                              content: 'npx --yes github:NB-Corp/nb-speak serve --port 18090',
                             }),
                           },
                         },
@@ -316,7 +317,6 @@ test('DSH bridge supports Mode A (JSON + multi-chunk SSE unwrapping + pure artif
   });
 
   try {
-    // 1. Mode A non-streaming: DSH `send_message` remaps to `agent_send_message`; pure SQL fence without `//` syntax pollution
     const resSkill = await fetch(`${bridge.baseUrl}/chat/completions`, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
@@ -337,7 +337,6 @@ test('DSH bridge supports Mode A (JSON + multi-chunk SSE unwrapping + pure artif
     assert.equal(skillJson.choices[0].message.tool_calls.length, 1);
     assert.equal(skillJson.choices[0].message.tool_calls[0].function.name, 'send_message');
 
-    // 2. Mode A SSE streaming (speak-only): partial `send_` + `message` unwrapped cleanly to content, finish_reason === 'stop', usage preserved
     const resSseSpeak = await fetch(`${bridge.baseUrl}/chat/completions`, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
@@ -356,12 +355,11 @@ test('DSH bridge supports Mode A (JSON + multi-chunk SSE unwrapping + pure artif
     assert.ok(!sseSpeakEvents.some((e) => e.choices?.[0]?.delta?.tool_calls));
     const fullStreamedContent = sseSpeakEvents.map((e) => e.choices?.[0]?.delta?.content ?? '').join('');
     assert.ok(fullStreamedContent.includes('零外部运行时依赖\n\n桥接启动命令放下面了'));
-    assert.ok(fullStreamedContent.includes('```bash\nnode packages/core/bin/nb-speak.mjs serve --port 18090\n```'));
+    assert.ok(fullStreamedContent.includes('```bash\nnpx --yes github:NB-Corp/nb-speak serve --port 18090\n```'));
     const lastSpeakEvent = sseSpeakEvents[sseSpeakEvents.length - 1]!;
     assert.equal(lastSpeakEvent.choices[0].finish_reason, 'stop');
     assert.equal(lastSpeakEvent.usage.total_tokens, 168);
 
-    // 3. Mode A SSE streaming (mixed user-speak + real DSH workspace `read` & subagent `send_message`): contiguous index 0, 1 + finish_reason === 'tool_calls'
     sseModeVariant = 'mixed-dsh-tools';
     const resSseMixed = await fetch(`${bridge.baseUrl}/chat/completions`, {
       method: 'POST',
@@ -391,7 +389,6 @@ test('DSH bridge supports Mode A (JSON + multi-chunk SSE unwrapping + pure artif
     );
     assert.equal(sseMixedEvents[sseMixedEvents.length - 1]!.choices[0].finish_reason, 'tool_calls');
 
-    // 4. Mode B (`voice-model`): Continuous weight tag + SSE paragraph formatting + subagent restore
     currentMode = 'voice-model';
     const resVoice = await fetch(`${bridge.baseUrl}/chat/completions`, {
       method: 'POST',
@@ -456,9 +453,19 @@ test('Cordis plugin apply() resolves DSH credentials service, mounts nbSpeak, an
   await cleanupFn?.();
 });
 
-test('install-dsh.mjs supports reversible --dry-run / --apply / --uninstall without touching credentials', () => {
-  const fakeHome = fs.mkdtempSync(path.join(os.tmpdir(), 'nb-speak-dsh-'));
+test('install-dsh.mjs supports zero-clone ephemeral npx cache persistence, survives npx cache wipe, and uninstalls byte-for-byte without touching credentials', async () => {
+  const fakeHome = fs.mkdtempSync(path.join(os.tmpdir(), 'nb-speak-dsh-home-'));
+  const fakeNpxCache = fs.mkdtempSync(path.join(os.tmpdir(), 'npx-ephemeral-'));
   try {
+    // Populate simulated `_npx/<hash>/node_modules/@nb-corp/nb-speak-dsh`
+    const ephemeralPluginDir = path.join(fakeNpxCache, '_npx', 'a1b2c3', 'node_modules', '@nb-corp', 'nb-speak-dsh');
+    for (const item of ['package.json', 'cordis.patch.yml', 'icon.svg', 'LICENSE', 'dist', 'src', 'presets', 'locale', 'scripts']) {
+      const srcPath = path.join(PLUGIN_ROOT, item);
+      if (fs.existsSync(srcPath)) {
+        fs.cpSync(srcPath, path.join(ephemeralPluginDir, item), { recursive: true });
+      }
+    }
+
     const credPath = path.join(fakeHome, '.credentials.yaml');
     fs.writeFileSync(credPath, 'DEEPSEEK_API_KEY: keep_untouched\n', 'utf8');
 
@@ -478,13 +485,19 @@ test('install-dsh.mjs supports reversible --dry-run / --apply / --uninstall with
     fs.writeFileSync(path.join(webDir, 'package.json'), origPkg, 'utf8');
     fs.writeFileSync(path.join(webDir, 'cordis.patch.yml'), origPatch, 'utf8');
 
-    runInstaller({ mode: 'dry-run', dshHome: fakeHome, profile: 'web' });
+    // 1. Dry-run makes zero filesystem mutations
+    const parsedHelp = parseCliArgs(['--help']);
+    assert.equal(parsedHelp.mode, 'help');
+    runInstaller({ mode: 'dry-run', dshHome: fakeHome, profile: 'web', pluginRoot: ephemeralPluginDir });
     assert.equal(fs.readFileSync(path.join(webDir, 'package.json'), 'utf8'), origPkg);
+    assert.equal(fs.existsSync(path.join(fakeHome, 'plugins', 'nb-speak-dsh')), false);
 
+    // 2. Apply from ephemeral npx cache persists runtime bundle into <DSH_HOME>/plugins/nb-speak-dsh
     runInstaller({
       mode: 'apply',
       dshHome: fakeHome,
       profile: 'web',
+      pluginRoot: ephemeralPluginDir,
       runtimeMode: 'skill',
       preset: 'sharp_lead',
       bridgePort: 18095,
@@ -493,19 +506,37 @@ test('install-dsh.mjs supports reversible --dry-run / --apply / --uninstall with
       apiKeyRef: 'AXON_API_KEY',
       wireProvider: true,
     });
+
+    // Wipe the ephemeral npx cache completely to prove zero dangling references!
+    fs.rmSync(fakeNpxCache, { recursive: true, force: true });
+
     const installedPkg = JSON.parse(fs.readFileSync(path.join(webDir, 'package.json'), 'utf8'));
     assert.ok(installedPkg.dsh.profile.bundles.includes('@nb-corp/nb-speak-dsh'));
+    assert.ok(!String(installedPkg.dependencies['@nb-corp/nb-speak-dsh']).includes('_npx'));
+    const linkedEntry = path.join(webDir, 'node_modules', '@nb-corp', 'nb-speak-dsh', 'dist', 'plugin.js');
+    const linkedClient = path.join(webDir, 'node_modules', '@nb-corp', 'nb-speak-dsh', 'dist', 'client.js');
+    assert.ok(fs.existsSync(linkedEntry), 'Persisted dist/plugin.js remains resolvable after npx cache wipe');
+    assert.ok(fs.existsSync(linkedClient), 'Persisted dist/client.js remains resolvable after npx cache wipe');
+
+    const importedPersisted = await import(pathToFileURL(linkedEntry).href);
+    assert.equal(typeof importedPersisted.apply, 'function');
+
     const patchContent = fs.readFileSync(path.join(webDir, 'cordis.patch.yml'), 'utf8');
     assert.ok(patchContent.includes('cmd/deepseek-v4.1-flash'));
     assert.ok(patchContent.includes('http://127.0.0.1:18095/v1'));
     assert.ok(fs.existsSync(path.join(fakeHome, '.agent-presets', 'nb-speak', 'agent.cordis.yml')));
 
+    // 3. Byte-for-byte uninstall removes persisted plugin dir and leaves .credentials.yaml untouched
     runInstaller({ mode: 'uninstall', dshHome: fakeHome, profile: 'web' });
     assert.equal(fs.readFileSync(path.join(webDir, 'package.json'), 'utf8'), origPkg);
     assert.equal(fs.readFileSync(path.join(webDir, 'cordis.patch.yml'), 'utf8'), origPatch);
+    assert.equal(fs.existsSync(path.join(fakeHome, 'plugins', 'nb-speak-dsh')), false);
     assert.equal(fs.readFileSync(credPath, 'utf8'), 'DEEPSEEK_API_KEY: keep_untouched\n');
   } finally {
     fs.rmSync(fakeHome, { recursive: true, force: true });
+    if (fs.existsSync(fakeNpxCache)) {
+      fs.rmSync(fakeNpxCache, { recursive: true, force: true });
+    }
   }
 });
 
@@ -831,11 +862,9 @@ test('Optional ElevenLabs TTS synthesizer produces DataURI audio when configured
   assert.equal(capturedBody.language_code, 'zh');
   assert.ok(String(out.audioSrc).startsWith('data:audio/mpeg;base64,'));
 
-  // Ensure LLM tool render() strips audioSrc DataURI so context tokens stay compact
   const llmRendered = JSON.stringify(bubbleDef.output.render({}, out));
   assert.ok(!llmRendered.includes('data:audio/mpeg;base64,'));
 
-  // Ensure WebUI presentationMeta preserves audioSrc for VoiceNotePill <audio>
   const meta = bubbleDef.output.presentationMeta(
     {
       bubbles: ['周五脑子宕机太正常了', '拿盒关东煮萝卜配热茶先垫垫'],

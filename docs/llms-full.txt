@@ -154,23 +154,20 @@ const turn = normalizeTurnOutput(completionResponse);
 console.log(turn.bubbles, turn.artifacts, turn.schedule, turn.lint.ok);
 ```
 
-### D. Mount inside DeepSeek Harness (`@nb-corp/nb-speak-dsh`)
+### D. Mount inside DeepSeek Harness (`NB-Corp/nb-speak-dsh`)
+Standalone repository: `https://github.com/NB-Corp/nb-speak-dsh` · Live showcase: `https://nb-corp.github.io/nb-speak-dsh/`
 ```bash
 # Preview changes safely without modifying files
-node packages/dsh-plugin/scripts/install-dsh.mjs --dry-run --profile web
+npx --yes github:NB-Corp/nb-speak-dsh --dry-run --profile web
 
-# Apply Native Mode (default: first-class send_bubble + send_artifact + WebUI bubbles)
-node packages/dsh-plugin/scripts/install-dsh.mjs --apply --profile web --preset neutral_peer
+# Persist ~/.dsh/plugins/nb-speak-dsh & apply Native Mode (send_bubble + send_artifact + turnTail WebUI)
+npx --yes github:NB-Corp/nb-speak-dsh --apply --profile web
 
 # Optional: launch DSH with ELEVENLABS_API_KEY for real eleven_v4 <audio> voice notes
 ELEVENLABS_API_KEY="xi-..." dsh web
 
-# Or apply Bridge Mode A / Mode B
-node packages/dsh-plugin/scripts/install-dsh.mjs --apply --profile web --runtime-mode skill --preset calm_sre
-node packages/dsh-plugin/scripts/install-dsh.mjs --apply --profile web --runtime-mode voice-model --upstream-url http://127.0.0.1:18088/v1
-
-# Clean reversible uninstall (never touches .credentials.yaml)
-node packages/dsh-plugin/scripts/install-dsh.mjs --uninstall --profile web
+# Byte-for-byte reversible uninstall (never touches .credentials.yaml)
+npx --yes github:NB-Corp/nb-speak-dsh --uninstall --profile web
 ```
 
 ---
@@ -190,8 +187,8 @@ Follow `nb-speak`'s **Text × Voice Note Complementarity** rule enforced by `lin
 3. Use `voice_note.text` (`4–10s`, `15–40` CJK chars or `12–30` English words, `<50%` bigram overlap with text) for an ear-side spoken reaction or warm/dry aside, spelling numbers and times as spoken words (`two thirty`, `十九块九`).
 4. If TTS synthesis fails or is unconfigured, fall back silently to text bubbles without leaking backend plugin errors into chat.
 
-### Q4: How does `@nb-corp/nb-speak-dsh` avoid colliding with DeepSeek Harness (`DSH`) subagent `send_message` tools?
-`packages/dsh-plugin/src/tool-remap.ts` builds a bidirectional per-request remap table: DSH's internal subagent `send_message` tool and historical subagent `tool_calls` are renamed to `agent_send_message` before reaching the upstream model, and any `agent_send_message` calls emitted by the model are restored back to `send_message` for DSH's orchestrator—leaving user-facing `send_message({ bubbles })` completely collision-free.
+### Q4: How does `@nb-corp/nb-speak-dsh` (`NB-Corp/nb-speak-dsh`) avoid colliding with DeepSeek Harness (`DSH`) subagent `send_message` tools and `EMPTY_RESPONSE` retries?
+In default `native` mode, `@nb-corp/nb-speak-dsh` registers first-class `send_bubble` and `send_artifact` tools directly on DSH's `tools` service—leaving `@deepseek-ai/dsh-tool-subagent-control`'s `send_message({ agent_id, message })` 100% untouched—and invokes `exec.concludeTurn()` inside `send_bubble.execute()` so DSH concludes the turn cleanly in one step with zero trailing `EMPTY_RESPONSE` retry loops. In optional HTTP bridge modes (`skill` / `voice-model`), `src/tool-remap.ts` bidirectionally remaps `send_message <-> agent_send_message` on every request and response.
 
 ### Q5: Does `nb-speak` force a specific personality or roleplay character onto my agent?
 No. `nb-speak` strictly separates **Layer 1 (Universal Bubble Physics)** from **Layer 2 (Persona & Tone)**. When no persona is configured, it defaults to **Neutral Engineer Peer**—an equal-footing, direct human colleague with zero uninvited roleplay, zero Unicode emoji spam, and zero corporate servility. You can switch presets (`sharp_lead`, `warm_companion`, `calm_sre`), mount any `SOUL.md` / `PERSONA.md`, or blend continuous 5-axis style weights (`clarity`, `warmth`, `sharp_wit`, `calm_grounding`, `concise_cadence`).

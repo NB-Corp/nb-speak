@@ -4,10 +4,10 @@
 
 ## Quickstart Surfaces
 
-- `npx skills add NB-Corp/nb-speak` — Install the standalone `chat-human` Agent Skill (`v0.2.0`) into Codex, Claude Code, Kiki, Cursor, or any Agent Skills runtime.
+- `npx skills add NB-Corp/nb-speak` (or `npx skills add NB-Corp/chat-human`) — Install the standalone `chat-human` Agent Skill (`v0.2.0`) into Codex, Claude Code, Kiki, Cursor, or any Agent Skills runtime.
+- `npx --yes github:NB-Corp/nb-speak-dsh --apply --profile web` — Zero-clone installation of the standalone DeepSeek Harness (`DSH`) native bubble plugin (`NB-Corp/nb-speak-dsh`), mounting `send_bubble` (`exec.concludeTurn()`) + `send_artifact` + WebUI `turnTail` bubbles, 22-bar ElevenLabs `eleven_v4` / Web Speech voice pills, and copyable artifact cards.
 - `npx --yes github:NB-Corp/nb-speak serve --port 18090 --upstream-url https://api.deepseek.com/v1` — Start the zero-dependency OpenAI-compatible HTTP/SSE bridge server (`nb-speak-bridge`) in front of DeepSeek, OpenAI, Claude, Gemini, or local `llama-server`.
 - `@nb-corp/nb-speak` (`packages/core`) — TypeScript/JavaScript SDK exporting `getOpenAISpeakTools()`, `getAnthropicSpeakTools()`, `getGeminiSpeakTools()`, `normalizeTurnOutput()`, `computeBubbleSchedule()`, `lintTurn()`, and `startSpeakBridge()`.
-- `@nb-corp/nb-speak-dsh` (`packages/dsh-plugin`) — Full-stack DeepSeek Harness plugin and WebUI client extension: registers native `send_bubble` (`exec.concludeTurn()`) + `send_artifact` tools (`runtimeMode: native`), renders tactile IM chat bubbles, playable 22-bar ElevenLabs `eleven_v4` `<audio>` / Web Speech voice-note pills, and copyable artifact cards inside DSH WebUI, and retains optional `skill` / `voice-model` OpenAI bridges with `send_message <-> agent_send_message` subagent disambiguation.
 
 ## Documentation & Canonical Resources
 
@@ -18,7 +18,8 @@
 - [Full Technical Specification for LLMs (`llms-full.txt`)](https://nb-corp.github.io/nb-speak/llms-full.txt): Complete `send_message` + `send_artifact` JSON schemas, SSE event wire format, `bubble_lint` error codes, quantitative benchmarks, comparison matrix, and developer Q&A.
 - [`chat-human` Skill Definition (`skills/chat-human/SKILL.md`)](https://github.com/NB-Corp/nb-speak/blob/main/skills/chat-human/SKILL.md): Two-layer IM delivery physics (Layer 1 Universal Bubble Mechanics + Layer 2 Pluggable Persona & Mood Physics).
 - [Core SDK (`packages/core/README.md`)](https://github.com/NB-Corp/nb-speak/blob/main/packages/core/README.md): API reference for `@nb-corp/nb-speak`.
-- [DSH Plugin (`packages/dsh-plugin/README.md`)](https://github.com/NB-Corp/nb-speak/blob/main/packages/dsh-plugin/README.md): Dual-mode configuration, continuous 5-axis persona weights, and reversible `--dry-run` / `--apply` / `--uninstall` CLI installer.
+- [Standalone DSH Bubble Plugin (`NB-Corp/nb-speak-dsh`)](https://github.com/NB-Corp/nb-speak-dsh): Zero-clone `npx` installer, native `send_bubble` + `exec.concludeTurn()`, and [Live DSH `turnTail` Showcase (`nb-corp.github.io/nb-speak-dsh`)](https://nb-corp.github.io/nb-speak-dsh/).
+- [Standalone `chat-human` Skill Repository (`NB-Corp/chat-human`)](https://github.com/NB-Corp/chat-human): Universal 2-layer IM delivery & pluggable persona Agent Skill (`llms.txt`).
 
 ## Sibling Ecosystem (`NB-Corp`)
 

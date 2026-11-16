@@ -1,7 +1,9 @@
 #!/usr/bin/env node
 /**
- * Reversible installer/uninstaller for `@nb-corp/nb-speak-dsh` into a DeepSeek Harness (`DSH_HOME`) profile.
- * Zero external dependencies; never touches `.credentials.yaml`.
+ * Zero-clone reversible installer/uninstaller for `@nb-corp/nb-speak-dsh` into a DeepSeek Harness (`DSH_HOME`) profile.
+ * - Safe with `npx --yes github:NB-Corp/nb-speak-dsh --apply --profile web`: persists a self-contained runtime bundle
+ *   under `<DSH_HOME>/plugins/nb-speak-dsh` so ephemeral `_npx` cache cleanup never breaks DSH.
+ * - Zero external runtime dependencies; never reads, modifies, or deletes `.credentials.yaml`.
  */
 import fs from 'node:fs';
 import os from 'node:os';
@@ -12,6 +14,20 @@ const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
 export const PLUGIN_ROOT = path.resolve(SCRIPT_DIR, '..');
 const PACKAGE_NAME = '@nb-corp/nb-speak-dsh';
 
+const RUNTIME_ENTRIES = [
+  'package.json',
+  'cordis.patch.yml',
+  'icon.svg',
+  'LICENSE',
+  'README.md',
+  'README.zh-CN.md',
+  'dist',
+  'src',
+  'presets',
+  'locale',
+  'scripts',
+];
+
 const PROFILE_TEMPLATES = {
   web: ['@deepseek-ai/dsh-base', '@deepseek-ai/dsh-web-app'],
   desktop: ['@deepseek-ai/dsh-base', '@deepseek-ai/dsh-web-app'],
@@ -21,6 +37,38 @@ const PROFILE_TEMPLATES = {
 };
 
 const DEFAULT_PATCH_TEMPLATE = `# DSH profile patch layer\n[]\n`;
+
+function readPackageVersion(pluginRoot = PLUGIN_ROOT) {
+  try {
+    const pkg = JSON.parse(fs.readFileSync(path.join(pluginRoot, 'package.json'), 'utf8'));
+    return String(pkg.version || '0.3.1');
+  } catch {
+    return '0.3.1';
+  }
+}
+
+export function formatHelpText() {
+  return [
+    `${PACKAGE_NAME} v${readPackageVersion()} — Reversible DeepSeek Harness (DSH) Bubble Plugin Installer`,
+    '',
+    'Usage:',
+    '  npx --yes github:NB-Corp/nb-speak-dsh --dry-run --profile web',
+    '  npx --yes github:NB-Corp/nb-speak-dsh --apply --profile web [--preset neutral_peer]',
+    '  npx --yes github:NB-Corp/nb-speak-dsh --uninstall --profile web',
+    '',
+    'Options:',
+    '  --dry-run                Preview planned profile changes with zero filesystem writes (default)',
+    '  --apply                  Persist plugin to <DSH_HOME>/plugins/nb-speak-dsh & mount into profile',
+    '  --uninstall              Restore profile byte-for-byte from backup & remove persisted plugin',
+    '  --profile <name>         Target DSH profile: web (default), desktop, acp, headless, sdk',
+    '  --dsh-home <dir>         Override DSH_HOME (defaults to $DSH_HOME or ~/.dsh)',
+    '  --preset <id>            Persona preset: neutral_peer (default), sharp_lead, warm_companion, calm_sre',
+    '  --runtime-mode <mode>    native (default), skill, or voice-model',
+    '  --link                   Link directly to current checkout instead of copying to <DSH_HOME>/plugins',
+    '  -v, --version            Print package version',
+    '  -h, --help               Show this help message',
+  ].join('\n');
+}
 
 export function parseCliArgs(argv) {
   let mode = 'dry-run';
@@ -33,12 +81,16 @@ export function parseCliArgs(argv) {
   let cloudModel = '';
   let apiKeyRef = '';
   let wireProvider = false;
+  let linkSource = false;
 
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i];
-    if (arg === '--dry-run') mode = 'dry-run';
+    if (arg === '--help' || arg === '-h') mode = 'help';
+    else if (arg === '--version' || arg === '-v') mode = 'version';
+    else if (arg === '--dry-run') mode = 'dry-run';
     else if (arg === '--apply') mode = 'apply';
     else if (arg === '--uninstall') mode = 'uninstall';
+    else if (arg === '--link') linkSource = true;
     else if (arg === '--dsh-home' && argv[i + 1]) dshHome = argv[++i];
     else if (arg === '--profile' && argv[i + 1]) profile = argv[++i];
     else if (arg === '--bridge-port' && argv[i + 1]) bridgePort = Number(argv[++i]);
@@ -68,6 +120,7 @@ export function parseCliArgs(argv) {
     cloudModel: cloudModel.trim(),
     apiKeyRef: apiKeyRef.trim(),
     wireProvider,
+    linkSource,
     pluginRoot: PLUGIN_ROOT,
   };
 }
@@ -81,17 +134,47 @@ function readOptionalUtf8(filePath) {
   }
 }
 
+function copyEntryRecursive(srcPath, destPath) {
+  const st = fs.statSync(srcPath);
+  if (st.isDirectory()) {
+    fs.mkdirSync(destPath, { recursive: true });
+    for (const entry of fs.readdirSync(srcPath, { withFileTypes: true })) {
+      copyEntryRecursive(path.join(srcPath, entry.name), path.join(destPath, entry.name));
+    }
+  } else {
+    fs.mkdirSync(path.dirname(destPath), { recursive: true });
+    fs.copyFileSync(srcPath, destPath);
+  }
+}
+
+function syncRuntimeBundle(sourceRoot, persistedDir) {
+  const srcResolved = path.resolve(sourceRoot);
+  const dstResolved = path.resolve(persistedDir);
+  if (srcResolved === dstResolved) return;
+  fs.rmSync(dstResolved, { recursive: true, force: true });
+  fs.mkdirSync(dstResolved, { recursive: true });
+  for (const rel of RUNTIME_ENTRIES) {
+    const srcItem = path.join(srcResolved, rel);
+    if (!fs.existsSync(srcItem)) continue;
+    copyEntryRecursive(srcItem, path.join(dstResolved, rel));
+  }
+}
+
 function createDirLink(targetDir, linkPath) {
   fs.mkdirSync(path.dirname(linkPath), { recursive: true });
   try {
     const st = fs.lstatSync(linkPath);
-    if (st.isSymbolicLink() || st.isDirectory()) {
+    if (st.isSymbolicLink() || st.isDirectory() || st.isFile()) {
       fs.rmSync(linkPath, { recursive: true, force: true });
     }
   } catch (err) {
     if (!err || err.code !== 'ENOENT') throw err;
   }
-  fs.symlinkSync(targetDir, linkPath, process.platform === 'win32' ? 'junction' : 'dir');
+  try {
+    fs.symlinkSync(targetDir, linkPath, process.platform === 'win32' ? 'junction' : 'dir');
+  } catch {
+    copyEntryRecursive(targetDir, linkPath);
+  }
 }
 
 function removeEmptyParents(dirPath, stopAt) {
@@ -120,12 +203,16 @@ export function runInstaller(options) {
     cloudModel = '',
     apiKeyRef = '',
     wireProvider = false,
+    linkSource = false,
     pluginRoot = PLUGIN_ROOT,
   } = options;
+
   const profileDir = path.join(dshHome, 'profiles', profile);
   const manifestPath = path.join(profileDir, 'package.json');
   const patchPath = path.join(profileDir, 'cordis.patch.yml');
   const nodeModulesLink = path.join(profileDir, 'node_modules', '@nb-corp', 'nb-speak-dsh');
+  const persistedPluginDir = path.join(dshHome, 'plugins', 'nb-speak-dsh');
+  const effectiveTargetRoot = linkSource ? path.resolve(pluginRoot) : persistedPluginDir;
   const presetDestDir = path.join(dshHome, '.agent-presets', 'nb-speak');
   const presetYmlDest = path.join(presetDestDir, 'preset.yml');
   const agentCordisDest = path.join(presetDestDir, 'agent.cordis.yml');
@@ -158,6 +245,24 @@ export function runInstaller(options) {
         // already absent
       }
       fs.rmSync(backupFile, { force: true });
+
+      let remainingBackups = 0;
+      try {
+        remainingBackups = fs.readdirSync(backupDir).filter((f) => f.endsWith('.json')).length;
+      } catch {
+        remainingBackups = 0;
+      }
+
+      if (remainingBackups === 0 && backup.createdPersistedPlugin !== false && fs.existsSync(persistedPluginDir)) {
+        try {
+          fs.rmSync(persistedPluginDir, { recursive: true, force: true });
+          removeEmptyParents(path.dirname(persistedPluginDir), dshHome);
+          actions.push({ op: 'remove_persisted_plugin', dir: persistedPluginDir });
+        } catch {
+          // ignore if active working dir holds handle
+        }
+      }
+
       removeEmptyParents(backupDir, dshHome);
       removeEmptyParents(profileDir, dshHome);
       actions.push({ op: 'restore_from_backup', backupFile });
@@ -178,7 +283,7 @@ export function runInstaller(options) {
       };
 
   manifest.dependencies = manifest.dependencies || {};
-  manifest.dependencies[PACKAGE_NAME] = `file:${pluginRoot.replace(/\\/g, '/')}`;
+  manifest.dependencies[PACKAGE_NAME] = `file:${effectiveTargetRoot.replace(/\\/g, '/')}`;
   manifest.dsh = manifest.dsh || {};
   manifest.dsh.profile = manifest.dsh.profile || {};
   const bundles = Array.isArray(manifest.dsh.profile.bundles)
@@ -285,14 +390,18 @@ export function runInstaller(options) {
   const srcPresetYml = fs.readFileSync(path.join(pluginRoot, 'presets', 'nb-speak', 'preset.yml'), 'utf8');
   const srcAgentCordis = fs.readFileSync(path.join(pluginRoot, 'presets', 'nb-speak', 'agent.cordis.yml'), 'utf8');
 
+  if (!linkSource) {
+    actions.push({ op: 'persist_plugin_bundle', source: pluginRoot, target: persistedPluginDir });
+  }
   actions.push(
     { op: origManifest === null ? 'create_manifest' : 'update_manifest', path: manifestPath, bundles },
     { op: origPatch === null ? 'create_patch' : 'update_patch', path: patchPath },
-    { op: 'link_plugin_package', link: nodeModulesLink, target: pluginRoot },
+    { op: 'link_plugin_package', link: nodeModulesLink, target: effectiveTargetRoot },
     { op: 'sync_agent_preset', dir: presetDestDir },
   );
 
   if (mode === 'apply') {
+    const persistedAlreadyExisted = fs.existsSync(persistedPluginDir);
     if (!fs.existsSync(backupFile)) {
       fs.mkdirSync(backupDir, { recursive: true });
       const tracked = [
@@ -305,24 +414,54 @@ export function runInstaller(options) {
       for (const rel of tracked) filesSnapshot[rel] = readOptionalUtf8(path.join(dshHome, rel));
       fs.writeFileSync(
         backupFile,
-        JSON.stringify({ createdAt: new Date().toISOString(), profile, pluginRoot, files: filesSnapshot }, null, 2) + '\n',
+        JSON.stringify(
+          {
+            createdAt: new Date().toISOString(),
+            profile,
+            pluginRoot: effectiveTargetRoot,
+            createdPersistedPlugin: !linkSource && !persistedAlreadyExisted,
+            files: filesSnapshot,
+          },
+          null,
+          2,
+        ) + '\n',
         'utf8',
       );
+    }
+
+    if (!linkSource) {
+      syncRuntimeBundle(pluginRoot, persistedPluginDir);
     }
 
     fs.mkdirSync(profileDir, { recursive: true });
     fs.writeFileSync(manifestPath, nextManifestText, 'utf8');
     fs.writeFileSync(patchPath, nextPatchText, 'utf8');
-    createDirLink(pluginRoot, nodeModulesLink);
+    createDirLink(effectiveTargetRoot, nodeModulesLink);
     fs.mkdirSync(presetDestDir, { recursive: true });
     fs.writeFileSync(presetYmlDest, srcPresetYml, 'utf8');
     fs.writeFileSync(agentCordisDest, srcAgentCordis, 'utf8');
   }
 
-  return { mode, dshHome, profile, profileDir, bundles, bridgeUrl: `http://127.0.0.1:${bridgePort}/v1`, actions };
+  return {
+    mode,
+    dshHome,
+    profile,
+    profileDir,
+    pluginDir: effectiveTargetRoot,
+    bundles,
+    bridgeUrl: `http://127.0.0.1:${bridgePort}/v1`,
+    actions,
+  };
 }
 
 const isMain = process.argv[1] && pathToFileURL(path.resolve(process.argv[1])).href === import.meta.url;
 if (isMain) {
-  console.log(JSON.stringify(runInstaller(parseCliArgs(process.argv.slice(2))), null, 2));
+  const parsed = parseCliArgs(process.argv.slice(2));
+  if (parsed.mode === 'help') {
+    console.log(formatHelpText());
+  } else if (parsed.mode === 'version') {
+    console.log(readPackageVersion());
+  } else {
+    console.log(JSON.stringify(runInstaller(parsed), null, 2));
+  }
 }

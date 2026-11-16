@@ -45,20 +45,19 @@ npx skills add NB-Corp/chat-human
 
 ### 2. 一键挂载 DeepSeek Harness (`DSH`) 原生真气泡与语音插件
 
-```bash
-git clone https://github.com/NB-Corp/nb-speak.git
-cd nb-speak
+独立插件仓 **[`NB-Corp/nb-speak-dsh`](https://github.com/NB-Corp/nb-speak-dsh)**（[在线展台 →](https://nb-corp.github.io/nb-speak-dsh/zh/)）支持零克隆一行挂载：
 
-# 1. 干跑预览改动，再将原生 send_bubble + send_artifact 与 WebUI 气泡挂载到 web profile
-node packages/dsh-plugin/scripts/install-dsh.mjs --dry-run --profile web
-node packages/dsh-plugin/scripts/install-dsh.mjs --apply --profile web
+```bash
+# 1. 干跑预览改动，再持久化同步至 ~/.dsh/plugins/nb-speak-dsh 并挂载到 web profile
+npx --yes github:NB-Corp/nb-speak-dsh --dry-run --profile web
+npx --yes github:NB-Corp/nb-speak-dsh --apply --profile web
 
 # 2. 可选：启动 dsh web 时传入 ELEVENLABS_API_KEY，自动合成 eleven_v4 真声供 <audio> 点播
 #    （未配置密钥时零报错无缝回退浏览器 Web Speech 朗读）
 ELEVENLABS_API_KEY="xi-..." dsh web
 
 # 3. 字节级无损还原卸载（全程绝不读取或修改 .credentials.yaml）
-node packages/dsh-plugin/scripts/install-dsh.mjs --uninstall --profile web
+npx --yes github:NB-Corp/nb-speak-dsh --uninstall --profile web
 ```
 
 ### 3. 一行启动本地 OpenAI/SSE 桥接网关或执行 `bubble_lint` 校验
@@ -184,7 +183,7 @@ data: [DONE]
 
 ## DeepSeek Harness 插件指南 (`@nb-corp/nb-speak-dsh`)
 
-[`packages/dsh-plugin`](packages/dsh-plugin) 为 DeepSeek Harness (`DSH`) 提供全栈原生 Cordis 宿主插件与 WebUI 前端气泡扩展 (`exports["./client"]`)。完整架构与配置说明请查阅独立包文档 [**`@nb-corp/nb-speak-dsh` README →**](packages/dsh-plugin/README.md)。
+[`packages/dsh-plugin`](packages/dsh-plugin)（同步发布为独立仓库 **[`NB-Corp/nb-speak-dsh`](https://github.com/NB-Corp/nb-speak-dsh)** · **[`nb-corp.github.io/nb-speak-dsh/zh/`](https://nb-corp.github.io/nb-speak-dsh/zh/)**）为 DeepSeek Harness (`DSH`) 提供全栈原生 Cordis 宿主插件与 WebUI 前端气泡扩展 (`exports["./client"]`)。完整架构与配置说明请查阅独立仓库文档 [**`NB-Corp/nb-speak-dsh` README →**](https://github.com/NB-Corp/nb-speak-dsh/blob/main/README.zh-CN.md)。
 
 ### 1. 三种运行模式：`native`（默认） · `skill` · `voice-model`
 

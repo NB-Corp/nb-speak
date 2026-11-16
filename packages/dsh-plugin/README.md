@@ -1,8 +1,8 @@
 # `@nb-corp/nb-speak-dsh`
 
-Full-stack DeepSeek Harness (`DSH`) Cordis plugin and WebUI client extension for [`NB-Corp/nb-speak`](https://github.com/NB-Corp/nb-speak). Replaces single-blob Markdown essays in DSH with tactile IM chat bubbles, playable 22-bar ElevenLabs `eleven_v4` / Web Speech voice-note pills, and collapsible one-click copyable artifact cards—with zero runtime npm dependencies and zero subagent tool collisions.
+Full-stack DeepSeek Harness (`DSH`) Cordis plugin and WebUI client extension—also published as the standalone zero-clone repository **[`NB-Corp/nb-speak-dsh`](https://github.com/NB-Corp/nb-speak-dsh)** for [`NB-Corp/nb-speak`](https://github.com/NB-Corp/nb-speak). Replaces single-blob Markdown essays in DSH with tactile IM chat bubbles, playable 22-bar ElevenLabs `eleven_v4` / Web Speech voice-note pills, and collapsible one-click copyable artifact cards—with zero runtime npm dependencies and zero subagent tool collisions.
 
-**[Try the Interactive Split-Stage & Play Live Voice Notes → `nb-corp.github.io/nb-speak/`](https://nb-corp.github.io/nb-speak/)** · **[中文工作台 → `/zh/`](https://nb-corp.github.io/nb-speak/zh/)**
+**[Standalone DSH Showcase → `nb-corp.github.io/nb-speak-dsh/`](https://nb-corp.github.io/nb-speak-dsh/)** · **[中文展台 → `/zh/`](https://nb-corp.github.io/nb-speak-dsh/zh/)** · **[Protocol Playground → `nb-corp.github.io/nb-speak/`](https://nb-corp.github.io/nb-speak/)**
 
 <p align="center">
   <a href="https://nb-corp.github.io/nb-speak/zh/">
@@ -15,20 +15,17 @@ Full-stack DeepSeek Harness (`DSH`) Cordis plugin and WebUI client extension for
 `scripts/install-dsh.mjs` snapshots your profile files to `<DSH_HOME>/.nb-speak-backup/<profile>.json` before writing and **never reads, modifies, or deletes `.credentials.yaml`**:
 
 ```bash
-# 1. Dry-run preview (zero filesystem writes)
-node packages/dsh-plugin/scripts/install-dsh.mjs --dry-run --profile web
+# 1. Zero-clone dry-run preview from the standalone repo (zero filesystem writes)
+npx --yes github:NB-Corp/nb-speak-dsh --dry-run --profile web
 
-# 2. Apply Native Mode (default) to your active DSH web profile
-node packages/dsh-plugin/scripts/install-dsh.mjs --apply --profile web --preset neutral_peer
+# 2. Apply Native Mode (persists ~/.dsh/plugins/nb-speak-dsh & mounts into web profile)
+npx --yes github:NB-Corp/nb-speak-dsh --apply --profile web
 
-# 3. Or test inside an isolated --dsh-home sandbox without touching ~/.dsh
-node packages/dsh-plugin/scripts/install-dsh.mjs --apply \
-  --dsh-home .tmp/dsh-sandbox \
-  --profile web \
-  --preset calm_sre
+# 3. Byte-for-byte reversible uninstall
+npx --yes github:NB-Corp/nb-speak-dsh --uninstall --profile web
 
-# 4. Byte-for-byte reversible uninstall
-node packages/dsh-plugin/scripts/install-dsh.mjs --uninstall --profile web
+# Or run directly from a local nb-speak monorepo checkout (--link skips copying):
+node packages/dsh-plugin/scripts/install-dsh.mjs --apply --link --profile web
 ```
 
 ## How Native Mode Works Under the Hood (`runtimeMode: "native"`)

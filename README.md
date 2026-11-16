@@ -45,20 +45,19 @@ npx skills add NB-Corp/chat-human
 
 ### 2. Mount Native IM Bubbles & Voice Notes in DeepSeek Harness (`DSH`)
 
-```bash
-git clone https://github.com/NB-Corp/nb-speak.git
-cd nb-speak
+Published as the standalone zero-clone repository **[`NB-Corp/nb-speak-dsh`](https://github.com/NB-Corp/nb-speak-dsh)** ([Live DSH Showcase →](https://nb-corp.github.io/nb-speak-dsh/)):
 
-# Preview safely, then apply native send_bubble + send_artifact + WebUI bubble rendering
-node packages/dsh-plugin/scripts/install-dsh.mjs --dry-run --profile web
-node packages/dsh-plugin/scripts/install-dsh.mjs --apply --profile web
+```bash
+# Preview safely, then persist ~/.dsh/plugins/nb-speak-dsh & mount into your web profile
+npx --yes github:NB-Corp/nb-speak-dsh --dry-run --profile web
+npx --yes github:NB-Corp/nb-speak-dsh --apply --profile web
 
 # Optional: set ELEVENLABS_API_KEY when launching dsh web to play real eleven_v4 audio
 # inside VoiceNotePill <audio> (unconfigured setups fall back seamlessly to Web Speech)
 ELEVENLABS_API_KEY="xi-..." dsh web
 
 # Byte-for-byte reversible uninstall (never reads or touches .credentials.yaml)
-node packages/dsh-plugin/scripts/install-dsh.mjs --uninstall --profile web
+npx --yes github:NB-Corp/nb-speak-dsh --uninstall --profile web
 ```
 
 ### 3. Run the OpenAI/SSE Bridge, Linter, or Normalizer in 30 Seconds
@@ -184,7 +183,7 @@ data: [DONE]
 
 ## DeepSeek Harness Plugin (`@nb-corp/nb-speak-dsh`)
 
-[`packages/dsh-plugin`](packages/dsh-plugin) ships a full-stack Cordis host plugin and WebUI client extension (`exports["./client"]`) for DeepSeek Harness (`DSH`). Read the dedicated [**`@nb-corp/nb-speak-dsh` Package Guide →**](packages/dsh-plugin/README.md).
+[`packages/dsh-plugin`](packages/dsh-plugin) (also standalone at **[`NB-Corp/nb-speak-dsh`](https://github.com/NB-Corp/nb-speak-dsh)** · **[`nb-corp.github.io/nb-speak-dsh`](https://nb-corp.github.io/nb-speak-dsh/)**) ships a full-stack Cordis host plugin and WebUI client extension (`exports["./client"]`) for DeepSeek Harness (`DSH`). Read the dedicated [**`@nb-corp/nb-speak-dsh` Guide →**](https://github.com/NB-Corp/nb-speak-dsh).
 
 ### 1. Three Runtime Modes: `native` (Default) · `skill` · `voice-model`
 
