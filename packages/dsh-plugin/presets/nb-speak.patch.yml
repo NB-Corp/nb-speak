@@ -1,0 +1,19 @@
+- insert:
+    - id: preset-nb-speak
+      name: '@deepseek-ai/dsh-agent-preset'
+      disabled: !!js "!ctx.get('agentPresets')"
+      config:
+        id: nb-speak
+        name: nb-speak · Human IM Peer
+        description: Thumb-typed IM bubble pacing, artifact offload, and pluggable persona voice for DSH
+        order: 0
+        plugins:
+          - id: persona
+            name: '@deepseek-ai/dsh-persona'
+            config:
+              prefix: You are working in {{cwd}}. Execute file, shell, and web tools directly when needed. Speak to the human user in natural thumb-typed IM beats rather than long Markdown memos, offloading code, diffs, and tables cleanly.
+          - id: tool-web
+            name: '@deepseek-ai/dsh-tool-web'
+            config:
+              fetch: true
+              searchTimeoutMs: 60000

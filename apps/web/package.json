@@ -1,0 +1,11 @@
+{
+  "name": "@nb-corp/nb-speak-web",
+  "private": true,
+  "version": "0.2.0",
+  "description": "Tactile paper-ink IM web frontend & live playground for nb-speak (exports statically to ../../docs for GitHub Pages).",
+  "type": "module",
+  "scripts": {
+    "build": "node ../../scripts/build.mjs",
+    "serve": "node ./serve-static.mjs"
+  }
+}

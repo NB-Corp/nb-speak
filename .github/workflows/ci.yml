@@ -1,0 +1,38 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Build packages & verify docs sync
+        run: node scripts/build.mjs
+
+      - name: Run @nb-corp/nb-speak core tests
+        run: node --test packages/core/tests/*.test.ts
+
+      - name: Run @nb-corp/nb-speak-dsh plugin tests
+        run: node --test packages/dsh-plugin/tests/*.test.ts
+
+      - name: Run chat-human Python stdlib tests
+        run: python -B -m unittest discover -s tests -v
+
+      - name: Verify CLI entrypoint
+        run: |
+          node packages/core/bin/nb-speak.mjs --version
+          echo '{"bubbles":["Staging deploy is green","Pool looks steady, good to push 100%"]}' | node packages/core/bin/nb-speak.mjs lint --json

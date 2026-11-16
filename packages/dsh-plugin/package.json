@@ -1,0 +1,102 @@
+{
+  "name": "@nb-corp/nb-speak-dsh",
+  "version": "0.2.0",
+  "description": "Universal DeepSeek Harness (DSH) plugin for nb-speak: dual-mode (standard cloud LLM skill mode + Split-Phase / 4B voice-model mode), subagent send_message collision avoidance, continuous persona weights, and reversible CLI installer.",
+  "license": "MIT",
+  "author": "Nai Long 7th <nailong@xter.org>",
+  "homepage": "https://nb-corp.github.io/nb-speak/",
+  "bugs": {
+    "url": "https://github.com/NB-Corp/nb-speak/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/NB-Corp/nb-speak.git",
+    "directory": "packages/dsh-plugin"
+  },
+  "keywords": [
+    "deepseek-harness",
+    "dsh-plugin",
+    "cordis",
+    "nb-speak",
+    "chat-human",
+    "send-message",
+    "im-protocol",
+    "nb-corp"
+  ],
+  "type": "module",
+  "main": "./dist/plugin.js",
+  "types": "./src/plugin.ts",
+  "bin": {
+    "nb-speak-dsh": "./scripts/install-dsh.mjs"
+  },
+  "exports": {
+    ".": {
+      "types": "./src/plugin.ts",
+      "default": "./dist/plugin.js"
+    },
+    "./weights": {
+      "types": "./src/weights.ts",
+      "default": "./dist/weights.js"
+    },
+    "./tool-remap": {
+      "types": "./src/tool-remap.ts",
+      "default": "./dist/tool-remap.js"
+    },
+    "./upstream": {
+      "types": "./src/upstream.ts",
+      "default": "./dist/upstream.js"
+    },
+    "./http-bridge": {
+      "types": "./src/http-bridge.ts",
+      "default": "./dist/http-bridge.js"
+    },
+    "./cordis.patch.yml": "./cordis.patch.yml",
+    "./presets/*.patch.yml": "./presets/*.patch.yml",
+    "./package.json": "./package.json"
+  },
+  "dsh": {
+    "manifestVersion": 1,
+    "bundle": {
+      "patch": [
+        "./cordis.patch.yml",
+        "./presets/nb-speak.patch.yml"
+      ]
+    }
+  },
+  "files": [
+    "dist",
+    "src",
+    "scripts",
+    "presets",
+    "cordis.patch.yml",
+    "LICENSE",
+    "README.md"
+  ],
+  "scripts": {
+    "test": "node --test tests/*.test.ts",
+    "install:dry-run": "node scripts/install-dsh.mjs --dry-run"
+  },
+  "engines": {
+    "node": ">=22.19.0"
+  },
+  "peerDependencies": {
+    "@deepseek-ai/cordis": ">=4.0.0",
+    "@deepseek-ai/dsh-credentials": ">=0.2.1-rc.0",
+    "@deepseek-ai/dsh-llm": ">=0.2.1-rc.0",
+    "@deepseek-ai/schemastery": ">=3.18.0"
+  },
+  "peerDependenciesMeta": {
+    "@deepseek-ai/cordis": {
+      "optional": true
+    },
+    "@deepseek-ai/dsh-credentials": {
+      "optional": true
+    },
+    "@deepseek-ai/dsh-llm": {
+      "optional": true
+    },
+    "@deepseek-ai/schemastery": {
+      "optional": true
+    }
+  }
+}

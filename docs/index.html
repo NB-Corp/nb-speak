@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="en" data-movement="M12">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>nb-speak — Structured IM Bubble Protocol, DSH Plugin &amp; chat-human Skill</title>
+  <meta name="description" content="Stop dumping 300-word Markdown essays in chat. nb-speak gives AI agents a universal send_message + send_artifact protocol, deterministic bubble_lint, DSH plugin, and chat-human Agent Skill.">
+  <link rel="canonical" href="https://nb-corp.github.io/nb-speak/">
+  <link rel="alternate" hreflang="en" href="https://nb-corp.github.io/nb-speak/">
+  <link rel="alternate" hreflang="zh-CN" href="https://nb-corp.github.io/nb-speak/zh/">
+  <link rel="alternate" hreflang="x-default" href="https://nb-corp.github.io/nb-speak/">
+
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="NB-Corp / nb-speak">
+  <meta property="og:title" content="nb-speak — How AI Agents Actually Speak to Humans">
+  <meta property="og:description" content="Universal send_message + send_artifact IM bubble protocol, OpenAI/SSE bridge, DeepSeek Harness plugin, and chat-human Agent Skill.">
+  <meta property="og:url" content="https://nb-corp.github.io/nb-speak/">
+  <meta property="og:image" content="https://nb-corp.github.io/nb-speak/og-banner.png">
+  <meta property="og:image:width" content="1280">
+  <meta property="og:image:height" content="640">
+
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="nb-speak — How AI Agents Actually Speak to Humans">
+  <meta name="twitter:description" content="Replace 300-word Markdown walls with paced IM bubbles, slide-out code artifacts, complementary voice notes, and deterministic bubble_lint.">
+  <meta name="twitter:image" content="https://nb-corp.github.io/nb-speak/og-banner.png">
+
+  <link rel="stylesheet" href="./assets/style.css">
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "SoftwareSourceCode",
+        "name": "nb-speak",
+        "alternateName": ["@nb-corp/nb-speak", "@nb-corp/nb-speak-dsh", "chat-human"],
+        "description": "Universal structured send_message + send_artifact IM bubble protocol, OpenAI/SSE bridge, DeepSeek Harness (DSH) plugin, tactile paper-ink web playground, and chat-human Agent Skill.",
+        "codeRepository": "https://github.com/NB-Corp/nb-speak",
+        "url": "https://nb-corp.github.io/nb-speak/",
+        "programmingLanguage": ["TypeScript", "JavaScript", "Python"],
+        "license": "https://opensource.org/licenses/MIT",
+        "version": "0.2.0",
+        "author": {
+          "@type": "Organization",
+          "name": "NB-Corp",
+          "url": "https://github.com/NB-Corp"
+        }
+      },
+      {
+        "@type": "SoftwareApplication",
+        "name": "nb-speak Live IM Playground",
+        "applicationCategory": "DeveloperApplication",
+        "operatingSystem": "Web, Windows, macOS, Linux",
+        "url": "https://nb-corp.github.io/nb-speak/",
+        "offers": {
+          "@type": "Offer",
+          "price": "0",
+          "priceCurrency": "USD"
+        }
+      },
+      {
+        "@type": "FAQPage",
+        "mainEntity": [
+          {
+            "@type": "Question",
+            "name": "How does nb-speak stop AI chat agents from sending 300-word Markdown essays?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "nb-speak replaces raw assistant.content dumps with two structured output tools—send_message (1-4 short thumb-typed IM bubbles plus an optional final-bubble complementary voice note) and send_artifact (offloading code, SQL, diffs, and tables into slide-out cards)—backed by deterministic bubble_lint validation."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "Does nb-speak work with DeepSeek, OpenAI, Claude, Gemini, and plain-reply harnesses?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Yes. @nb-corp/nb-speak exports native tool schemas for OpenAI/DeepSeek, Anthropic Claude, and Google Gemini, includes a Plain-Reply Fallback parser that extracts fenced code and tables automatically, and ships a zero-dependency HTTP/SSE OpenAI bridge plus a DeepSeek Harness (DSH) plugin."
+            }
+          }
+        ]
+      }
+    ]
+  }
+  </script>
+</head>
+<body>
+  <div class="page-wrap">
+    <!-- Floating Concentric Pill Masthead -->
+    <header class="masthead">
+      <a class="brand" href="./">
+        <span class="brand-mark" aria-hidden="true">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        </span>
+        <span>nb-speak</span>
+      </a>
+      <nav class="nav-links" aria-label="Primary">
+        <a class="nav-pill" href="#split-stage" aria-current="page">Split Stage</a>
+        <a class="nav-pill" href="#workspace">Live Workspace</a>
+        <a class="nav-pill" href="#install">Quickstart</a>
+        <a class="nav-pill" href="./llms.txt">llms.txt</a>
+        <a class="nav-pill" href="./zh/" lang="zh-CN">简体中文</a>
+      </nav>
+      <a class="pill-cta" href="https://github.com/NB-Corp/nb-speak" target="_blank" rel="noopener">
+        <span>GitHub</span>
+        <span class="pill-cta__orb" aria-hidden="true">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="7" y1="17" x2="17" y2="7"/><polyline points="7 7 17 7 17 17"/></svg>
+        </span>
+      </a>
+    </header>
+
+    <!-- Screen 1: Hero + Interactive Side-by-Side Split Stage -->
+    <main>
+      <section id="split-stage">
+        <div class="hero-head">
+          <div class="hero-copy">
+            <span class="eyebrow-tag">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+              <span>nb-speak/1 · Universal IM Bubble &amp; Artifact Protocol</span>
+            </span>
+            <h1 class="hero-title">How AI agents speak human.</h1>
+            <p class="hero-sub">Replace 300-word Markdown walls with paced <code class="mono">send_message</code> beats, slide-out <code class="mono">send_artifact</code> cards, and complementary voice notes.</p>
+          </div>
+
+          <div class="scenario-bar" id="scenario-tabs" role="tablist" aria-label="Comparison scenarios"></div>
+        </div>
+
+        <div class="m12-bezel-shell" data-style-layer="bezel">
+          <div class="m12-bezel-core split-stage" data-style-layer="core">
+            <!-- Left: Raw LLM Wall -->
+            <div class="stage-pane stage-pane--raw">
+              <div class="pane-head">
+                <span class="pane-title">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="3"/><line x1="7" y1="8" x2="17" y2="8"/><line x1="7" y1="12" x2="17" y2="12"/><line x1="7" y1="16" x2="13" y2="16"/></svg>
+                  <span>Raw LLM Blob (<code class="mono">assistant.content</code>)</span>
+                </span>
+                <span class="lint-badge lint-badge--fail" id="raw-lint-badge">bubble_lint: 4 issues</span>
+              </div>
+
+              <div class="chat-stream" id="raw-stream" aria-live="polite"></div>
+
+              <div class="pane-foot">
+                <span class="mono" id="raw-foot-stat">markdown_structure · over_en_budget</span>
+                <span>180-word essay wall</span>
+              </div>
+            </div>
+
+            <!-- Right: nb-speak Protocol -->
+            <div class="stage-pane stage-pane--speak">
+              <div class="pane-head">
+                <span class="pane-title">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+                  <span>nb-speak (<code class="mono">send_message</code> + <code class="mono">send_artifact</code>)</span>
+                </span>
+                <span class="lint-badge lint-badge--pass" id="speak-lint-badge">bubble_lint: 0 warnings</span>
+              </div>
+
+              <div class="chat-stream" id="speak-stream" aria-live="polite"></div>
+
+              <div class="pane-foot">
+                <span class="mono" id="speak-foot-stat">2 bubbles · 1 artifact</span>
+                <div style="display:flex;gap:8px;">
+                  <button type="button" class="mini-btn" id="toggle-stage-json">Inspect JSON</button>
+                  <button type="button" class="mini-btn" id="replay-stage-btn">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
+                    <span>Replay cadence</span>
+                  </button>
+                </div>
+              </div>
+
+              <div id="stage-json-drawer" hidden style="margin-top:12px;">
+                <pre class="code-well" id="stage-json-preview"></pre>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Screen 2: Live BYOK / Local Bridge IM Workspace + Live Linter -->
+      <section id="workspace" class="section-gap">
+        <div class="section-head">
+          <div>
+            <h2 class="section-title">Live Bridge &amp; Protocol Workspace</h2>
+            <p class="section-note">Connect to <code class="mono">npx nb-speak serve</code> (<code class="mono">127.0.0.1:18090</code>), bring an OpenAI/DeepSeek key in browser memory, or normalize raw Markdown walls offline.</p>
+          </div>
+          <span class="lint-badge lint-badge--warn" id="ws-bridge-status">Checking local bridge...</span>
+        </div>
+
+        <div class="workspace-grid">
+          <!-- 7-col IM Workspace -->
+          <div class="m12-bezel-shell" data-style-layer="bezel">
+            <div class="m12-bezel-core ws-main" data-style-layer="core">
+              <div class="ws-controls">
+                <div class="field-group">
+                  <label class="field-label" for="ws-mode">Connection Mode</label>
+                  <select class="soft-select" id="ws-mode">
+                    <option value="normalize">Offline Protocol Normalizer</option>
+                    <option value="bridge">Local Bridge (127.0.0.1:18090)</option>
+                    <option value="byok">Browser BYOK (DeepSeek / OpenAI)</option>
+                  </select>
+                </div>
+                <div class="field-group">
+                  <label class="field-label" for="ws-persona">Active Persona Layer</label>
+                  <select class="soft-select" id="ws-persona">
+                    <option value="neutral_peer">Neutral Engineer Peer</option>
+                    <option value="sharp_lead">Sharp Tech Lead</option>
+                    <option value="warm_companion">Warm Companion</option>
+                    <option value="calm_sre">Calm SRE Relay</option>
+                  </select>
+                </div>
+                <div class="field-group">
+                  <label class="field-label" for="ws-endpoint">API Endpoint</label>
+                  <input class="soft-input mono" id="ws-endpoint" type="text" value="http://127.0.0.1:18090/v1">
+                </div>
+              </div>
+
+              <div class="ws-controls" id="ws-apikey-wrap" hidden>
+                <div class="field-group">
+                  <label class="field-label" for="ws-apikey">API Key (Browser-Only)</label>
+                  <input class="soft-input mono" id="ws-apikey" type="password" placeholder="sk-...">
+                </div>
+                <div class="field-group">
+                  <label class="field-label" for="ws-model">Model ID</label>
+                  <input class="soft-input mono" id="ws-model" type="text" value="deepseek-chat">
+                </div>
+                <div class="field-group">
+                  <label class="field-label" for="ws-soul">Custom SOUL.md Override</label>
+                  <input class="soft-input" id="ws-soul" type="text" placeholder="Optional custom tone rule...">
+                </div>
+              </div>
+
+              <div class="chat-stream" id="ws-thread" style="min-height:280px;max-height:360px;"></div>
+
+              <div class="composer-row">
+                <input class="soft-input" id="ws-composer-input" type="text" placeholder="Send a message or paste a Markdown + code wall to normalize..." aria-label="Message or raw Markdown input">
+                <button type="button" class="pill-cta" id="ws-send-btn">
+                  <span>Send</span>
+                  <span class="pill-cta__orb" aria-hidden="true">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                  </span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- 5-col Telemetry & Live bubble_lint Drawer -->
+          <div class="m12-bezel-shell" data-style-layer="bezel">
+            <div class="m12-bezel-core ws-inspector" data-style-layer="core">
+              <div class="inspector-tabs" role="tablist" aria-label="Protocol Inspector">
+                <button type="button" class="inspector-tab" data-inspector-tab="lint" aria-selected="true">Live bubble_lint</button>
+                <button type="button" class="inspector-tab" data-inspector-tab="json" aria-selected="false">Parsed Turn</button>
+                <button type="button" class="inspector-tab" data-inspector-tab="system" aria-selected="false">System Layer</button>
+              </div>
+
+              <div id="insp-pane-lint">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+                  <label class="field-label" for="lint-live-editor">Edit JSON or Plain Beats to Test Linter</label>
+                  <span class="lint-badge lint-badge--pass" id="lint-live-badge">bubble_lint: 0 warnings</span>
+                </div>
+                <textarea class="soft-textarea" id="lint-live-editor" spellcheck="false"></textarea>
+                <ul class="issue-list" id="lint-live-issues" style="margin-top:10px;"></ul>
+              </div>
+
+              <div id="insp-pane-json" hidden>
+                <span class="field-label">Normalized Protocol Output</span>
+                <pre class="code-well" id="insp-tool-json" style="margin-top:6px;"></pre>
+              </div>
+
+              <div id="insp-pane-system" hidden>
+                <span class="field-label">Injected chat-human + nb-speak Contract</span>
+                <pre class="code-well" id="insp-system-prompt" style="margin-top:6px;"></pre>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Screen 3: Verified Quickstart & Comparison -->
+      <section id="install" class="section-gap">
+        <div class="section-head">
+          <div>
+            <h2 class="section-title">Drop Into Any Stack in 30 Seconds</h2>
+            <p class="section-note">Zero runtime dependencies. Works as an Agent Skill, an OpenAI/SSE proxy bridge, or a native DeepSeek Harness plugin.</p>
+          </div>
+        </div>
+
+        <div class="quickstart-grid">
+          <div class="cmd-strip">
+            <div class="cmd-label">
+              <span>1. Install chat-human Agent Skill</span>
+              <button type="button" class="mini-btn" data-copy-target="cmd-1">Copy</button>
+            </div>
+            <pre class="cmd-code" id="cmd-1">npx skills add NB-Corp/nb-speak</pre>
+          </div>
+
+          <div class="cmd-strip">
+            <div class="cmd-label">
+              <span>2. Start OpenAI / SSE Bridge</span>
+              <button type="button" class="mini-btn" data-copy-target="cmd-2">Copy</button>
+            </div>
+            <pre class="cmd-code" id="cmd-2">npx --yes github:NB-Corp/nb-speak serve --port 18090</pre>
+          </div>
+
+          <div class="cmd-strip">
+            <div class="cmd-label">
+              <span>3. Mount in DeepSeek Harness (DSH)</span>
+              <button type="button" class="mini-btn" data-copy-target="cmd-3">Copy</button>
+            </div>
+            <pre class="cmd-code" id="cmd-3">node packages/dsh-plugin/scripts/install-dsh.mjs --apply</pre>
+          </div>
+        </div>
+
+        <div class="matrix-wrap" style="margin-top:28px;">
+          <table class="matrix-table">
+            <thead>
+              <tr>
+                <th>Capability</th>
+                <th>nb-speak</th>
+                <th>Raw Chat UIs (OpenWebUI / LobeChat)</th>
+                <th>Prose Humanizers</th>
+                <th>Plain TTS Readout</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>Output unit</strong></td>
+                <td><code class="mono">1–4</code> paced bubbles + <code class="mono">send_artifact</code> cards</td>
+                <td>Single 300-word <code class="mono">assistant.content</code> blob</td>
+                <td>Rewritten prose paragraphs</td>
+                <td>Audio clone of full Markdown blob</td>
+              </tr>
+              <tr>
+                <td><strong>Code, SQL &amp; tables</strong></td>
+                <td>Offloaded cleanly via <code class="mono">send_artifact</code></td>
+                <td>Crammed inline inside narrow bubbles</td>
+                <td>Left untouched in text stream</td>
+                <td>Reads backticks &amp; URLs aloud</td>
+              </tr>
+              <tr>
+                <td><strong>Voice note physics</strong></td>
+                <td>Final-bubble complementary aside (<code class="mono">&lt;50%</code> overlap)</td>
+                <td>Full-message screen reader TTS</td>
+                <td>None</td>
+                <td>100% verbatim text duplication</td>
+              </tr>
+              <tr>
+                <td><strong>Subagent tool safety</strong></td>
+                <td>Transparent <code class="mono">send_message &lt;-&gt; agent_send_message</code> remap</td>
+                <td>Collides with agent orchestration tools</td>
+                <td>N/A</td>
+                <td>N/A</td>
+              </tr>
+              <tr>
+                <td><strong>Deterministic gate</strong></td>
+                <td>TS + Python <code class="mono">bubble_lint</code> (<code class="mono">97.2%–100%</code> pass rate)</td>
+                <td>None</td>
+                <td>Subjective prompt heuristics</td>
+                <td>None</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+
+    <footer class="footer-bar">
+      <span>MIT License · Built by <strong>NB-Corp</strong> (<code class="mono">nb-search</code> discovers · <code class="mono">nb-extract</code> reads · <code class="mono">nb-im</code> routes · <code class="mono">nb-speak</code> speaks)</span>
+      <div style="display:flex;gap:16px;">
+        <a href="https://github.com/NB-Corp/nb-speak">GitHub</a>
+        <a href="./llms.txt">llms.txt</a>
+        <a href="./llms-full.txt">llms-full.txt</a>
+        <a href="./zh/" lang="zh-CN">简体中文</a>
+      </div>
+    </footer>
+  </div>
+
+  <script type="module" src="./assets/app.js"></script>
+</body>
+</html>

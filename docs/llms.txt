@@ -1,0 +1,28 @@
+# nb-speak
+
+> `NB-Corp/nb-speak` is the universal structured `send_message` + `send_artifact` IM bubble protocol, zero-dependency OpenAI/SSE bridge server, DeepSeek Harness (`DSH`) plugin, embeddable tactile paper-ink IM web playground, and `chat-human` Agent Skill (`v0.2.0`) for AI agents. Within the `NB-Corp` ecosystem (`nb-search` discovers, `nb-extract` reads, `nb-hub` signals, `nb-im` routes), `nb-speak` is how AI agents actually speak to humans—replacing 300-word single-blob Markdown walls with 1–4 paced thumb-typed bubbles, slide-out code/SQL/table artifact cards, complementary final-bubble voice notes, and deterministic `bubble_lint` validation (`97.2%–100%` zero-slop pass rate across DeepSeek and GPT).
+
+## Quickstart Surfaces
+
+- `npx skills add NB-Corp/nb-speak` — Install the standalone `chat-human` Agent Skill (`v0.2.0`) into Codex, Claude Code, Kiki, Cursor, or any Agent Skills runtime.
+- `npx --yes github:NB-Corp/nb-speak serve --port 18090 --upstream-url https://api.deepseek.com/v1` — Start the zero-dependency OpenAI-compatible HTTP/SSE bridge server (`nb-speak-bridge`) in front of DeepSeek, OpenAI, Claude, Gemini, or local `llama-server`.
+- `@nb-corp/nb-speak` (`packages/core`) — TypeScript/JavaScript SDK exporting `getOpenAISpeakTools()`, `getAnthropicSpeakTools()`, `getGeminiSpeakTools()`, `normalizeTurnOutput()`, `computeBubbleSchedule()`, `lintTurn()`, and `startSpeakBridge()`.
+- `@nb-corp/nb-speak-dsh` (`packages/dsh-plugin`) — Universal DeepSeek Harness plugin supporting Mode A (`skill` on standard cloud LLMs) and Mode B (`voice-model` on Split-Phase / 4B voice-translator sidecars) with transparent `send_message <-> agent_send_message` subagent tool disambiguation.
+
+## Documentation & Canonical Resources
+
+- [Repository & Quickstart (English)](https://github.com/NB-Corp/nb-speak/blob/main/README.md): Complete overview, architecture diagram, Before/After proof, and verified CLI/SDK usage.
+- [中文文档 (README.zh-CN.md)](https://github.com/NB-Corp/nb-speak/blob/main/README.zh-CN.md): 完整中文架构说明、30 秒快速接入指南与对比矩阵。
+- [Live IM Split-Stage Playground (EN)](https://nb-corp.github.io/nb-speak/): Interactive side-by-side comparison of raw `assistant.content` walls vs. `nb-speak` bubbles, artifacts, voice notes, and live `bubble_lint`.
+- [实时同屏对比工作台 (ZH)](https://nb-corp.github.io/nb-speak/zh/): 中文交互式同屏对比与 BYOK / 本地桥接测试台。
+- [Full Technical Specification for LLMs (`llms-full.txt`)](https://nb-corp.github.io/nb-speak/llms-full.txt): Complete `send_message` + `send_artifact` JSON schemas, SSE event wire format, `bubble_lint` error codes, quantitative benchmarks, comparison matrix, and developer Q&A.
+- [`chat-human` Skill Definition (`skills/chat-human/SKILL.md`)](https://github.com/NB-Corp/nb-speak/blob/main/skills/chat-human/SKILL.md): Two-layer IM delivery physics (Layer 1 Universal Bubble Mechanics + Layer 2 Pluggable Persona & Mood Physics).
+- [Core SDK (`packages/core/README.md`)](https://github.com/NB-Corp/nb-speak/blob/main/packages/core/README.md): API reference for `@nb-corp/nb-speak`.
+- [DSH Plugin (`packages/dsh-plugin/README.md`)](https://github.com/NB-Corp/nb-speak/blob/main/packages/dsh-plugin/README.md): Dual-mode configuration, continuous 5-axis persona weights, and reversible `--dry-run` / `--apply` / `--uninstall` CLI installer.
+
+## Sibling Ecosystem (`NB-Corp`)
+
+- [NB-Corp/nb-im](https://github.com/NB-Corp/nb-im): Bidirectional messaging sessions (Telegram, Feishu, Slack, Discord, Matrix, WeChat, OneBot) and durable notification outbox.
+- [NB-Corp/nb-search](https://github.com/NB-Corp/nb-search): Unified web search, URL-to-Markdown extraction, and RRF multi-source fusion for AI agents.
+- [NB-Corp/nb-extract](https://github.com/NB-Corp/nb-extract): Clean web-page and document-to-Markdown Agent Skill.
+- [NB-Corp/nb-hub](https://github.com/NB-Corp/nb-hub): Deterministic zero-LLM signal ledger and wake switchboard for AI agents.
