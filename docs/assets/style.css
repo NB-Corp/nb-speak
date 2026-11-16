@@ -195,7 +195,7 @@ pre,
 }
 
 .hero-copy {
-  max-width: 540px;
+  max-width: 680px;
 }
 
 .eyebrow-tag {
@@ -227,12 +227,12 @@ html[lang^="zh"] .hero-title {
 .hero-sub {
   margin: 0;
   color: var(--muted);
-  font-size: clamp(15.5px, 1.4vw, 17.5px);
-  max-width: 54ch;
+  font-size: clamp(15.5px, 1.35vw, 17px);
+  max-width: 62ch;
 }
 
 html[lang^="zh"] .hero-sub {
-  max-width: 36ic;
+  max-width: 44ic;
 }
 
 .scenario-bar {
@@ -473,6 +473,37 @@ html[lang^="zh"] .hero-sub {
   font-size: 11px;
 }
 
+.artifact-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.artifact-chip-btn {
+  min-height: 28px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--rim-strong);
+  background: var(--pod-core);
+  color: var(--ink);
+  font-family: inherit;
+  font-size: 11.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 150ms ease, color 150ms ease, border-color 150ms ease;
+}
+
+.artifact-chip-btn:hover {
+  background: var(--surface-subtle);
+}
+
+.artifact-chip-btn[data-copied="true"] {
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+  border-color: oklch(33% 0.07 var(--h-forest) / 0.28);
+}
+
 .artifact-body {
   margin: 0;
   padding: 12px 14px;
@@ -483,6 +514,40 @@ html[lang^="zh"] .hero-sub {
   overflow-wrap: anywhere;
   color: var(--ink);
   background: transparent;
+}
+
+.artifact-body[data-collapsible="true"][data-expanded="false"] {
+  max-height: 176px;
+  overflow: hidden;
+  mask-image: linear-gradient(to bottom, #000 72%, transparent 100%);
+  -webkit-mask-image: linear-gradient(to bottom, #000 72%, transparent 100%);
+}
+
+.artifact-table-wrap {
+  overflow-x: auto;
+  padding: 4px 6px 8px;
+}
+
+.artifact-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12.5px;
+}
+
+.artifact-table th,
+.artifact-table td {
+  padding: 7px 10px;
+  border-bottom: 1px solid var(--rim);
+  text-align: left;
+}
+
+.artifact-table th {
+  font-weight: 700;
+  color: var(--muted);
+}
+
+.artifact-table tr:last-child td {
+  border-bottom: 0;
 }
 
 /* Complementary Voice-Note Waveform Pill */
@@ -595,6 +660,117 @@ html[lang^="zh"] .hero-sub {
 
 .mini-btn:hover {
   background: var(--surface-subtle);
+}
+
+.mini-btn--accent {
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+  border-color: oklch(33% 0.07 var(--h-forest) / 0.24);
+}
+
+.mini-btn--accent:hover {
+  background: oklch(90.5% 0.032 var(--h-forest));
+}
+
+/* Live DeepSeek Harness (:19081 vs :19082) Proof Bar & Lightbox */
+.dsh-proof-bar {
+  margin-top: 14px;
+  padding: 10px 14px 10px 16px;
+  border-radius: 20px;
+  background: var(--bezel-tray);
+  border: 1px solid var(--rim);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.dsh-proof-meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  flex-wrap: wrap;
+}
+
+.dsh-proof-pill {
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.dsh-proof-text {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.dsh-lightbox {
+  width: min(94vw, 1260px);
+  max-height: 92vh;
+  margin: auto;
+  padding: 6px;
+  border-radius: 26px;
+  border: 1px solid var(--rim-strong);
+  background: var(--bezel-tray);
+  color: var(--ink);
+  box-shadow: 0 32px 72px -18px oklch(14% 0.02 var(--h-paper) / 0.42);
+}
+
+.dsh-lightbox::backdrop {
+  background: oklch(15% 0.012 var(--h-paper) / 0.58);
+  backdrop-filter: blur(4px);
+}
+
+.dsh-lightbox__inner {
+  border-radius: 20px;
+  background: var(--pod-core);
+  border: 1px solid rgba(255, 255, 255, 0.9);
+  padding: clamp(14px, 2vw, 22px);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  max-height: calc(92vh - 14px);
+}
+
+.dsh-lightbox__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.dsh-lightbox__tabs {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.dsh-lightbox__body {
+  overflow: auto;
+  border-radius: 14px;
+  border: 1px solid var(--rim);
+  background: oklch(96.5% 0.008 var(--h-paper));
+}
+
+.dsh-lightbox__img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.dsh-lightbox__caption {
+  margin: 0;
+  font-size: 13px;
+  color: var(--muted);
 }
 
 /* 4. Generous Open Ceramic Breathing Room Between Acts */

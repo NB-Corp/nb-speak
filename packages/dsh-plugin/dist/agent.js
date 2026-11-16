@@ -3,11 +3,13 @@ import {
                                   
                            
 } from './dsh-tools.js';
+import { createVoiceNoteSynthesizer,                           } from './tts.js';
                                                       
 
                                          
                                        
                           
+                                                      
  
 
                                    
@@ -25,10 +27,15 @@ export const inject = {
 };
 
 export function apply(ctx                  )       {
+  const fallbackSynthesizer = createVoiceNoteSynthesizer();
   ctx.effect(() =>
     registerSpeakToolsAndPrompt(ctx.tools, ctx.systemPrompt, {
       getSliderConfig: () => ctx.nbSpeak?.getSliderConfig() ?? { preset: 'neutral_peer' },
       getCustomSoul: () => ctx.nbSpeak?.getCustomSoul() ?? '',
+      synthesizeVoiceNote: (input) =>
+        ctx.nbSpeak?.synthesizeVoiceNote
+          ? ctx.nbSpeak.synthesizeVoiceNote(input)
+          : fallbackSynthesizer(input),
     }),
   );
 }

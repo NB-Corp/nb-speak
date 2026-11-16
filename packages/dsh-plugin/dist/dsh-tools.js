@@ -1,4 +1,8 @@
 import {
+  createVoiceNoteSynthesizer,
+                            
+} from './tts.js';
+import {
   computeEffectiveWeights,
   resolveRawSlidersFromConfig,
                           
@@ -40,6 +44,7 @@ export const NB_SPEAK_PROMPT_ORDER = 9200;
                         
                                      
                                    
+                             
  
 
                                  
@@ -55,6 +60,8 @@ export const NB_SPEAK_PROMPT_ORDER = 9200;
                                
                                  
                           
+                             
+                                         
  
 
                                                                   
@@ -204,7 +211,7 @@ export function buildNativeSpeakPromptSection(options
     '   - Pass `bubbles`: 1–4 short thumb-typed chat lines (4–28 CJK chars or 4–22 English words each).',
     '   - Omit trailing periods (`。` / `.`) on short single-clause lines.',
     '   - Never put `#` headers, bullet lists, Markdown tables, code fences, stage brackets (`（叹气）`, `*sighs*`), or decorative UI emojis inside `bubbles`.',
-    '   - Optionally attach `voice_note: { text, emotion }` when a short spoken aside (4–10s, natural spoken phrasing that complements rather than repeats the text bubbles) adds genuine warmth or emphasis.',
+    '   - Optionally attach `voice_note: { text, emotion }` when a short mic-side spoken aside (15–38 CJK chars or 10–25 English words, ~4–9s; break every 2 short clauses with `。` or `？`, spell numbers naturally, zero `[giggles]` tags, complementing rather than repeating the text bubbles) adds genuine warmth or emphasis.',
     '   - Calling `send_bubble` automatically concludes your turn once all tool calls in that step finish—do not call `send_bubble` mid-turn while you still have workspace tools left to run.',
     '3. **Offload structured material to `send_artifact`**:',
     '   - Whenever sharing shell commands, runnable code, SQL queries, unified diffs, or Markdown comparison tables, call `send_artifact` alongside `send_bubble` in the same step.',
@@ -218,7 +225,10 @@ export function buildNativeSpeakPromptSection(options
   ].join('\n');
 }
 
-export function createSendBubbleToolDefinition()                          {
+export function createSendBubbleToolDefinition(options   
+                                                      
+  = {})                          {
+  const synthesizeVoiceNote = options.synthesizeVoiceNote ?? createVoiceNoteSynthesizer();
   return {
     name: SEND_BUBBLE_TOOL_NAME,
     description:
@@ -268,17 +278,24 @@ export function createSendBubbleToolDefinition()                          {
           bubbleCount: { type: 'integer' },
           hasVoiceNote: { type: 'boolean' },
           status: { type: 'string' },
+          audioSrc: { type: 'string' },
+          audioDurationSeconds: { type: 'number' },
         },
       },
       render(_args                , value                  ) {
         return [
           {
             type: 'text',
-            text: JSON.stringify(value),
+            text: JSON.stringify({
+              delivered: value.delivered,
+              bubbleCount: value.bubbleCount,
+              hasVoiceNote: value.hasVoiceNote,
+              status: value.status,
+            }),
           },
         ];
       },
-      presentationMeta(args                , _value                  )                 {
+      presentationMeta(args                , value                  )                 {
         const cleaned = (Array.isArray(args?.bubbles) ? args.bubbles : [])
           .map((item) => sanitizeSpokenBubble(item))
           .filter((item) => item.length > 0);
@@ -286,11 +303,17 @@ export function createSendBubbleToolDefinition()                          {
         const rawEmotion = args?.voice_note?.emotion;
         const emotion                   =
           rawEmotion && VALID_EMOTIONS.has(rawEmotion) ? rawEmotion : 'neutral';
+        const audioSrc = typeof value?.audioSrc === 'string' && value.audioSrc.trim() ? value.audioSrc.trim() : undefined;
+        const durationSeconds =
+          typeof value?.audioDurationSeconds === 'number' && Number.isFinite(value.audioDurationSeconds) && value.audioDurationSeconds > 0
+            ? Math.max(1, Math.round(value.audioDurationSeconds))
+            : estimateVoiceNoteSeconds(vnText);
         const voiceNote                                  = vnText
           ? {
               text: vnText,
               emotion,
-              durationSeconds: estimateVoiceNoteSeconds(vnText),
+              durationSeconds,
+              ...(audioSrc ? { audioSrc } : {}),
             }
           : undefined;
         const replyTo = typeof args?.reply_to === 'string' && args.reply_to.trim() ? args.reply_to.trim() : undefined;
@@ -316,6 +339,12 @@ export function createSendBubbleToolDefinition()                          {
         throw new Error('send_bubble accepts at most 6 bubbles per turn; offload dense material to send_artifact');
       }
       const vnText = typeof args.voice_note?.text === 'string' ? args.voice_note.text.trim() : '';
+      const rawEmotion = args.voice_note?.emotion;
+      const emotion                   =
+        rawEmotion && VALID_EMOTIONS.has(rawEmotion) ? rawEmotion : 'neutral';
+      const synthesized = vnText
+        ? await synthesizeVoiceNote({ text: vnText, emotion })
+        : undefined;
       const concludes = args.end_turn !== false;
       if (concludes && exec && typeof exec.concludeTurn === 'function') {
         exec.concludeTurn();
@@ -327,6 +356,8 @@ export function createSendBubbleToolDefinition()                          {
         status: concludes
           ? 'BUBBLES_RENDERED_AND_TURN_CONCLUDED'
           : 'PROGRESS_BUBBLES_RENDERED — Continue running your remaining workspace tools, then call send_bubble with end_turn: true for the final reply.',
+        ...(synthesized?.audioSrc ? { audioSrc: synthesized.audioSrc } : {}),
+        ...(typeof synthesized?.durationSeconds === 'number' ? { audioDurationSeconds: synthesized.durationSeconds } : {}),
       };
     },
   };
@@ -422,9 +453,12 @@ export function registerSpeakToolsAndPrompt(
   options   
                                                       
                                          
+                                                        
    ,
 )             {
-  const disposeBubble = tools.register(createSendBubbleToolDefinition());
+  const disposeBubble = tools.register(
+    createSendBubbleToolDefinition({ synthesizeVoiceNote: options.synthesizeVoiceNote }),
+  );
   const disposeArtifact = tools.register(createSendArtifactToolDefinition());
   const disposePrompt = systemPrompt.section({
     name: NB_SPEAK_PROMPT_SECTION,

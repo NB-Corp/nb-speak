@@ -31,16 +31,23 @@ const UI_STRINGS = {
     issuesSuffix: (n) => (n === 0 ? 'bubble_lint: 0 warnings' : `bubble_lint: ${n} issues`),
     voiceLabel: (sec, emotion) => `${sec}s · ${emotion || 'voice'}`,
     artifactBadge: (kind, language) => (language ? `${kind} · ${language}` : kind),
-    footStat: (bubbles, arts, sec) => `${bubbles} bubbles · ${arts} artifact · ${sec}s cadence`,
+    artifactExpand: (lines) => `Expand (${lines} lines)`,
+    artifactCollapse: 'Collapse',
+    footStat: (bubbles, arts, sec) =>
+      arts > 0
+        ? `${bubbles} bubbles · ${arts} artifact · ${sec}s cadence`
+        : `${bubbles} bubbles · ${sec}s cadence`,
     rawFallbackStat: 'Single assistant.content blob',
     copied: 'Copied',
     copy: 'Copy',
     bridgeOnline: 'Bridge connected',
     bridgeOffline: 'Bridge offline (using local normalizer)',
     lintZero: '0 issues — clean thumb-typed IM payload.',
-    voiceAiTag: 'AI-synthesized demo voice',
-    voicePlayAria: 'Play voice note',
+    voiceAiTag: (voice) =>
+      voice ? `ElevenLabs ${voice} · AI-synthesized` : 'ElevenLabs eleven_v4 · AI-synthesized',
+    voicePlayAria: 'Play ElevenLabs voice note',
     voicePauseAria: 'Pause voice note',
+    viewDshShot: 'Live DSH Capture',
   },
   zh: {
     issuesSuffix: (n) => (n === 0 ? 'bubble_lint: 0 告警' : `bubble_lint: ${n} 项问题`),
@@ -49,20 +56,28 @@ const UI_STRINGS = {
       const k = ZH_KIND_MAP[kind] || kind;
       return language ? `${k} · ${language.toUpperCase()}` : k;
     },
-    footStat: (bubbles, arts, sec) => `${bubbles} 条短气泡 · ${arts} 张独立卡片 · ${sec}秒节拍`,
+    artifactExpand: (lines) => `展开全部 (${lines} 行)`,
+    artifactCollapse: '收起',
+    footStat: (bubbles, arts, sec) =>
+      arts > 0
+        ? `${bubbles} 条短气泡 · ${arts} 张独立卡片 · ${sec}秒节拍`
+        : `${bubbles} 条短气泡 · 零代码卡 · ${sec}秒节拍`,
     rawFallbackStat: '单块长文倾倒',
     copied: '已复制',
     copy: '复制',
     bridgeOnline: '本地桥接已连接',
     bridgeOffline: '本地桥接未启动（当前为离线协议解析模式）',
     lintZero: '0 告警 —— 符合真人拇指打字与语音互补规范。',
-    voiceAiTag: 'AI 合成示例语音',
-    voicePlayAria: '播放语音条',
+    voiceAiTag: (voice) =>
+      voice ? `ElevenLabs ${voice} · AI 合成真声` : 'ElevenLabs eleven_v4 · AI 合成真声',
+    voicePlayAria: '播放 ElevenLabs 语音条',
     voicePauseAria: '暂停语音条',
+    viewDshShot: 'DSH 同屏实拍',
   },
 }[LANG];
 
-const AUDIO_BASE = LANG === 'zh' ? '../assets/audio/' : './assets/audio/';
+const ASSET_BASE = LANG === 'zh' ? '../assets/' : './assets/';
+const AUDIO_BASE = `${ASSET_BASE}audio/`;
 let activeVoiceStop = null;
 
 function stopActiveVoice() {
@@ -92,6 +107,61 @@ function createEl(tag, className, text) {
   return el;
 }
 
+async function writeClipboardSafe(text) {
+  if (navigator.clipboard?.writeText) {
+    try {
+      await navigator.clipboard.writeText(text);
+      return true;
+    } catch {
+      // Fall back to textarea copy
+    }
+  }
+  const ta = document.createElement('textarea');
+  ta.value = text;
+  ta.style.position = 'fixed';
+  ta.style.opacity = '0';
+  document.body.appendChild(ta);
+  ta.select();
+  const ok = document.execCommand('copy');
+  document.body.removeChild(ta);
+  return ok;
+}
+
+function computeBarHeights(seedText, count = 22) {
+  let hash = 2166136261;
+  for (let i = 0; i < seedText.length; i += 1) {
+    hash ^= seedText.charCodeAt(i);
+    hash = Math.imul(hash, 16777619);
+  }
+  const out = [];
+  for (let i = 0; i < count; i += 1) {
+    hash ^= (i + 1) * 2654435761;
+    hash = Math.imul(hash, 1597334677);
+    const unit = ((hash >>> 0) % 1000) / 1000;
+    const env = Math.sin(((i + 0.5) / count) * Math.PI);
+    out.push(Math.max(5, Math.min(19, Math.round(5 + (0.35 + 0.65 * env) * unit * 14))));
+  }
+  return out;
+}
+
+function parsePipeTable(content) {
+  const lines = String(content || '')
+    .split('\n')
+    .map((l) => l.trim())
+    .filter(Boolean);
+  if (lines.length < 2 || !lines[0].includes('|')) return null;
+  const splitRow = (line) =>
+    line
+      .replace(/^\|/, '')
+      .replace(/\|$/, '')
+      .split('|')
+      .map((c) => c.trim());
+  const headers = splitRow(lines[0]);
+  const startRow = /^[\s|:-]+$/.test(lines[1]) ? 2 : 1;
+  const rows = lines.slice(startRow).map(splitRow);
+  return headers.length > 0 && rows.length > 0 ? { headers, rows } : null;
+}
+
 function renderVoicePill(voiceNote, audioMeta = null) {
   const wrap = createEl('div', 'voice-pill-wrap');
   const pill = createEl('button', 'voice-pill');
@@ -105,11 +175,11 @@ function renderVoicePill(voiceNote, audioMeta = null) {
   pill.appendChild(playOrb);
 
   const bars = createEl('span', 'voice-bars');
-  const heights = [7, 13, 18, 10, 16, 19, 11, 15, 9, 17, 12, 8, 14, 10];
+  const heights = computeBarHeights(voiceNote.text || 'nb-speak', 22);
   const barEls = heights.map((h, idx) => {
     const bar = createEl('span', 'voice-bar');
     bar.style.height = `${h}px`;
-    bar.style.animationDelay = `${idx * 45}ms`;
+    bar.style.animationDelay = `${idx * 38}ms`;
     bars.appendChild(bar);
     return bar;
   });
@@ -125,7 +195,7 @@ function renderVoicePill(voiceNote, audioMeta = null) {
   const transcript = createEl('div', 'voice-transcript');
   transcript.appendChild(createEl('span', '', `“${voiceNote.text}”`));
   if (audioMeta?.file) {
-    transcript.appendChild(createEl('span', 'voice-ai-tag', UI_STRINGS.voiceAiTag));
+    transcript.appendChild(createEl('span', 'voice-ai-tag', UI_STRINGS.voiceAiTag(audioMeta.voice)));
   }
 
   const updateBarProgress = (ratio) => {
@@ -141,6 +211,7 @@ function renderVoicePill(voiceNote, audioMeta = null) {
     audioEl.preload = 'metadata';
     audioEl.src = `${AUDIO_BASE}${audioMeta.file}`;
     audioEl.setAttribute('aria-hidden', 'true');
+    audioEl.setAttribute('data-voice-audio', audioMeta.file);
     audioEl.hidden = true;
 
     let rafId = null;
@@ -272,20 +343,169 @@ function renderArtifactCard(art) {
   const titleWrap = createEl('span', 'artifact-title');
   titleWrap.innerHTML = svgCode();
   titleWrap.appendChild(createEl('span', '', art.title));
-  const kindBadge = createEl('span', 'artifact-kind', UI_STRINGS.artifactBadge(art.kind, art.language));
-  head.appendChild(titleWrap);
-  head.appendChild(kindBadge);
+  titleWrap.appendChild(createEl('span', 'artifact-kind', UI_STRINGS.artifactBadge(art.kind, art.language)));
 
-  const pre = createEl('pre', 'artifact-body', art.content);
+  const actions = createEl('div', 'artifact-actions');
+  const lineCount = String(art.content || '').split('\n').length;
+  const parsedTable = art.kind === 'table' ? parsePipeTable(art.content) : null;
+  const collapsible = !parsedTable && lineCount > 11;
+  let expanded = false;
+
+  let bodyEl;
+  if (parsedTable) {
+    bodyEl = createEl('div', 'artifact-table-wrap');
+    const table = createEl('table', 'artifact-table');
+    const thead = createEl('thead');
+    const headRow = createEl('tr');
+    parsedTable.headers.forEach((hd) => headRow.appendChild(createEl('th', '', hd)));
+    thead.appendChild(headRow);
+    const tbody = createEl('tbody');
+    parsedTable.rows.forEach((row) => {
+      const tr = createEl('tr');
+      row.forEach((cell) => tr.appendChild(createEl('td', '', cell)));
+      tbody.appendChild(tr);
+    });
+    table.appendChild(thead);
+    table.appendChild(tbody);
+    bodyEl.appendChild(table);
+  } else {
+    bodyEl = createEl('pre', 'artifact-body', art.content);
+    bodyEl.setAttribute('data-collapsible', collapsible ? 'true' : 'false');
+    bodyEl.setAttribute('data-expanded', 'false');
+  }
+
+  if (collapsible) {
+    const expandBtn = createEl('button', 'artifact-chip-btn', UI_STRINGS.artifactExpand(lineCount));
+    expandBtn.type = 'button';
+    expandBtn.setAttribute('data-action', 'expand-artifact');
+    expandBtn.addEventListener('click', () => {
+      expanded = !expanded;
+      bodyEl.setAttribute('data-expanded', expanded ? 'true' : 'false');
+      expandBtn.textContent = expanded ? UI_STRINGS.artifactCollapse : UI_STRINGS.artifactExpand(lineCount);
+    });
+    actions.appendChild(expandBtn);
+  }
+
+  const copyBtn = createEl('button', 'artifact-chip-btn', UI_STRINGS.copy);
+  copyBtn.type = 'button';
+  copyBtn.setAttribute('data-action', 'copy-artifact');
+  copyBtn.setAttribute('data-copied', 'false');
+  copyBtn.addEventListener('click', async () => {
+    const ok = await writeClipboardSafe(art.content || '');
+    if (ok) {
+      copyBtn.setAttribute('data-copied', 'true');
+      copyBtn.textContent = UI_STRINGS.copied;
+      setTimeout(() => {
+        copyBtn.setAttribute('data-copied', 'false');
+        copyBtn.textContent = UI_STRINGS.copy;
+      }, 1400);
+    }
+  });
+  actions.appendChild(copyBtn);
+
+  head.appendChild(titleWrap);
+  head.appendChild(actions);
   card.appendChild(head);
-  card.appendChild(pre);
+  card.appendChild(bodyEl);
   return card;
 }
 
-// --- Section 1: Interactive Split Stage ---
+// --- Section 1: Interactive Split Stage + DSH Live Capture Lightbox ---
 const scenarioList = SCENARIOS[LANG] || SCENARIOS.en;
+const dshScenarioList = scenarioList.filter((sc) => Boolean(sc.dshCapture));
 let activeScenarioIdx = 0;
 let playGeneration = 0;
+
+function openDshLightbox(targetScenarioId) {
+  const dialog = document.getElementById('dsh-lightbox');
+  const imgEl = document.getElementById('dsh-lightbox-img');
+  const titleEl = document.getElementById('dsh-lightbox-title');
+  const capEl = document.getElementById('dsh-lightbox-caption');
+  const tabsWrap = document.getElementById('dsh-lightbox-tabs');
+  if (!dialog || !imgEl || dshScenarioList.length === 0) return;
+
+  const chosen =
+    dshScenarioList.find((sc) => sc.id === targetScenarioId) || dshScenarioList[0];
+
+  imgEl.src = `${ASSET_BASE}${chosen.dshCapture.file}`;
+  imgEl.alt = chosen.dshCapture.title;
+  if (titleEl) titleEl.textContent = chosen.dshCapture.title;
+  if (capEl) capEl.textContent = chosen.dshCapture.caption;
+
+  if (tabsWrap) {
+    [...tabsWrap.querySelectorAll('[data-lightbox-id]')].forEach((btn) => {
+      const match = btn.getAttribute('data-lightbox-id') === chosen.id;
+      btn.setAttribute('aria-selected', match ? 'true' : 'false');
+      btn.classList.toggle('mini-btn--accent', match);
+    });
+  }
+
+  if (!dialog.open && typeof dialog.showModal === 'function') {
+    dialog.showModal();
+  } else if (!dialog.open) {
+    dialog.setAttribute('open', '');
+  }
+}
+
+function syncDshProofBar(scenario) {
+  const proofBar = document.getElementById('dsh-proof-bar');
+  const proofBadge = document.getElementById('dsh-proof-badge');
+  const proofTitle = document.getElementById('dsh-proof-title');
+  const stageDshBtn = document.getElementById('open-stage-dsh-btn');
+
+  if (stageDshBtn) {
+    if (scenario.dshCapture) {
+      stageDshBtn.hidden = false;
+      stageDshBtn.onclick = () => openDshLightbox(scenario.id);
+    } else {
+      stageDshBtn.hidden = true;
+    }
+  }
+
+  if (!proofBar) return;
+  const fallbackDsh = scenario.dshCapture ? scenario : dshScenarioList[0];
+  if (!fallbackDsh?.dshCapture) {
+    proofBar.hidden = true;
+    return;
+  }
+  proofBar.hidden = false;
+  if (proofBadge) proofBadge.textContent = fallbackDsh.dshBadge || 'DSH Live';
+  if (proofTitle) proofTitle.textContent = fallbackDsh.dshCapture.title;
+  const barBtn = document.getElementById('dsh-proof-open-btn');
+  if (barBtn) {
+    barBtn.onclick = () => openDshLightbox(fallbackDsh.id);
+  }
+}
+
+function initDshLightbox() {
+  const dialog = document.getElementById('dsh-lightbox');
+  const closeBtn = document.getElementById('dsh-lightbox-close');
+  const tabsWrap = document.getElementById('dsh-lightbox-tabs');
+  if (!dialog) return;
+
+  if (tabsWrap) {
+    tabsWrap.innerHTML = '';
+    dshScenarioList.forEach((sc) => {
+      const btn = createEl('button', 'mini-btn', sc.label);
+      btn.type = 'button';
+      btn.setAttribute('data-lightbox-id', sc.id);
+      btn.addEventListener('click', () => openDshLightbox(sc.id));
+      tabsWrap.appendChild(btn);
+    });
+  }
+
+  closeBtn?.addEventListener('click', () => {
+    if (typeof dialog.close === 'function') dialog.close();
+    else dialog.removeAttribute('open');
+  });
+
+  dialog.addEventListener('click', (ev) => {
+    if (ev.target === dialog) {
+      if (typeof dialog.close === 'function') dialog.close();
+      else dialog.removeAttribute('open');
+    }
+  });
+}
 
 function renderSplitStage(scenario, animate = true) {
   stopActiveVoice();
@@ -304,6 +524,7 @@ function renderSplitStage(scenario, animate = true) {
 
   rawStream.innerHTML = '';
   speakStream.innerHTML = '';
+  syncDshProofBar(scenario);
 
   // User prompt on both sides
   for (const container of [rawStream, speakStream]) {
@@ -407,6 +628,7 @@ function initSplitStage() {
   const toggleJsonBtn = document.getElementById('toggle-stage-json');
   const jsonDrawer = document.getElementById('stage-json-drawer');
 
+  initDshLightbox();
   if (!tabsWrap) return;
   tabsWrap.innerHTML = '';
 
@@ -414,6 +636,7 @@ function initSplitStage() {
     const btn = createEl('button', 'scenario-tab', sc.label);
     btn.type = 'button';
     btn.setAttribute('role', 'tab');
+    btn.setAttribute('data-scenario-id', sc.id);
     btn.setAttribute('aria-selected', idx === 0 ? 'true' : 'false');
     btn.addEventListener('click', () => {
       activeScenarioIdx = idx;
@@ -439,7 +662,6 @@ function initSplitStage() {
     });
   }
 
-  // Render initial state cleanly right away (so crawlers & instant first paint see full bubbles + artifacts!)
   renderSplitStage(scenarioList[0], false);
 }
 
@@ -645,7 +867,6 @@ function initWorkspace() {
       history.push({ role: 'assistant', content: turn.bubbles.join('\n\n') });
       appendTurnToWorkspace(text, turn);
     } catch {
-      // If bridge isn't running locally, normalize text directly via real @nb-corp/nb-speak parser so user still gets a working parse
       const fallbackTurn = normalizeTurnOutput(text, { cleanHygiene: true });
       appendTurnToWorkspace(text, fallbackTurn);
     }
@@ -659,7 +880,6 @@ function initWorkspace() {
     }
   });
 
-  // Seed workspace with 1 clean real normalized turn so it looks alive on arrival
   const seedRaw =
     LANG === 'zh'
       ? 'Bubble 1: 灰度日志刚核对完。\n\n```sql\n-- check_pool.sql\nSELECT state, count(*) FROM pg_stat_activity GROUP BY 1;\n```\n\n连接池空闲充裕，今晚放心推全量。'
@@ -679,15 +899,13 @@ function initCopyButtons() {
       const targetId = btn.getAttribute('data-copy-target');
       const targetEl = targetId ? document.getElementById(targetId) : null;
       if (!targetEl) return;
-      try {
-        await navigator.clipboard.writeText(targetEl.textContent || '');
+      const ok = await writeClipboardSafe(targetEl.textContent || '');
+      if (ok) {
         const orig = btn.textContent;
         btn.textContent = UI_STRINGS.copied;
         setTimeout(() => {
           btn.textContent = orig;
         }, 1300);
-      } catch {
-        // Ignore clipboard permission errors in headless environments
       }
     });
   });

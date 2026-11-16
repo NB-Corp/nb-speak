@@ -11,6 +11,7 @@ export interface ClientVoiceNote {
   readonly text: string;
   readonly emotion: ClientVoiceEmotion;
   readonly durationSeconds: number;
+  readonly audioSrc?: string;
 }
 
 export interface ClientBubbleEntry {
@@ -130,10 +131,17 @@ export function parseBubbleEntryFromArgs(
     const text = vnRaw.text.trim();
     const rawEmotion = typeof vnRaw.emotion === 'string' ? (vnRaw.emotion as ClientVoiceEmotion) : 'neutral';
     const emotion: ClientVoiceEmotion = VALID_EMOTIONS.has(rawEmotion) ? rawEmotion : 'neutral';
+    const audioSrc =
+      typeof vnRaw.audioSrc === 'string' && vnRaw.audioSrc.trim()
+        ? vnRaw.audioSrc.trim()
+        : typeof vnRaw.audio_url === 'string' && vnRaw.audio_url.trim()
+          ? vnRaw.audio_url.trim()
+          : undefined;
     voiceNote = {
       text,
       emotion,
       durationSeconds: estimateClientVoiceSeconds(text),
+      ...(audioSrc ? { audioSrc } : {}),
     };
   }
   const replyTo = typeof obj.reply_to === 'string' && obj.reply_to.trim() ? obj.reply_to.trim() : undefined;
@@ -360,6 +368,10 @@ export const nbSpeakTurnDefinition = {
         const bubbles = meta.bubbles.map((b) => String(b)).filter(Boolean);
         if (bubbles.length === 0) return prev;
         const vn = safeParseJsonRecord(meta.voiceNote);
+        const audioSrc =
+          vn && typeof vn.audioSrc === 'string' && vn.audioSrc.trim()
+            ? vn.audioSrc.trim()
+            : existing?.voiceNote?.audioSrc;
         const voiceNote: ClientVoiceNote | undefined =
           vn && typeof vn.text === 'string'
             ? {
@@ -371,6 +383,7 @@ export const nbSpeakTurnDefinition = {
                   typeof vn.durationSeconds === 'number'
                     ? vn.durationSeconds
                     : estimateClientVoiceSeconds(vn.text),
+                ...(audioSrc ? { audioSrc } : {}),
               }
             : existing?.voiceNote;
         const nextMap = new Map(prev.bubbleMap);

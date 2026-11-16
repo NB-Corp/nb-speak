@@ -7,6 +7,7 @@ import {
                                   
                            
 } from './dsh-tools.js';
+import { createVoiceNoteSynthesizer } from './tts.js';
                                                                            
 import {
   resolveUpstreamModelSpec,
@@ -57,6 +58,10 @@ export const inject = {
                                                             
                                                     
                                                      
+                                                       
+                                                   
+                                                   
+                                                          
                                                                          
                                   
                               
@@ -122,6 +127,22 @@ async function buildSchemaIfAvailable()                   {
     defaultVoiceModel: z.string().default('nb-speak-voice-v1').description('Bridge Mode B base model prefix').volatile(),
     apiKeyRef: z.string().default('NB_SPEAK_API_KEY').description('Bridge upstream credential env/store key').volatile(),
     customSoul: z.string().default('').description('Optional custom SOUL.md / persona prompt override').volatile(),
+    ttsApiKeyRef: z
+      .string()
+      .default('ELEVENLABS_API_KEY')
+      .description('Optional ElevenLabs API credential ref/env for real voice_note audio; falls back to Web Speech when unset')
+      .volatile(),
+    ttsVoice: z
+      .string()
+      .default('auto')
+      .description('Optional ElevenLabs voice alias or ID (auto, Jessica, ZiYue, ShanShan, Julia, Sarah)')
+      .volatile(),
+    ttsModel: z.string().default('eleven_v4').description('Optional ElevenLabs TTS model ID').volatile(),
+    ttsBridgeScript: z
+      .string()
+      .default('')
+      .description('Optional local JSON TTS bridge script path (or set NB_SPEAK_TTS_BRIDGE)')
+      .volatile(),
     bubbleJoinMode: z.union(['paragraph', 'newline']         ).default('paragraph').volatile(),
     bridgeEnabled: z.boolean().default(false),
     bridgeHost: z.string().default('127.0.0.1'),
@@ -202,12 +223,28 @@ export async function apply(
     };
   };
 
+  const synthesizeVoiceNote = createVoiceNoteSynthesizer({
+    getBridgeScript: () => readVal(config.ttsBridgeScript, env.NB_SPEAK_TTS_BRIDGE ?? ''),
+    getVoice: () => readVal(config.ttsVoice, env.NB_SPEAK_TTS_VOICE ?? 'auto'),
+    getModel: () => readVal(config.ttsModel, env.NB_SPEAK_TTS_MODEL ?? 'eleven_v4'),
+    getApiKey: () =>
+      resolveCredentialValue(ctx.credentials, env, [
+        readVal(config.ttsApiKeyRef, 'ELEVENLABS_API_KEY'),
+        'ELEVENLABS_API_KEY',
+        'ELEVEN_API_KEY',
+        'XI_API_KEY',
+      ]),
+    env,
+    fetchImpl: overrides.fetchImpl,
+  });
+
   let disposeNativeTools                          ;
   const shouldRegisterGlobal = config.registerGlobalTools ?? true;
   if (shouldRegisterGlobal && ctx.tools && ctx.systemPrompt && readVal(config.runtimeMode, 'native') === 'native') {
     disposeNativeTools = registerSpeakToolsAndPrompt(ctx.tools, ctx.systemPrompt, {
       getSliderConfig,
       getCustomSoul,
+      synthesizeVoiceNote,
     });
   }
 
@@ -232,6 +269,7 @@ export async function apply(
     ...(bridgeServer ? { bridgeBaseUrl: bridgeServer.baseUrl, bridgePort: bridgeServer.port } : {}),
     getSliderConfig,
     getCustomSoul,
+    synthesizeVoiceNote,
     currentSpec: () =>
       resolveUpstreamModelSpec(
         undefined,

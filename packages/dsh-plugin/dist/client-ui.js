@@ -73,6 +73,16 @@ async function copyTextToClipboard(text        )                   {
 export function createNbSpeakClientPlugin(React     , cssText        ) {
   const h = React.createElement;
   const speech = createSpeechPlaybackController();
+  let activeAudioDispose                      = null;
+
+  function stopGlobalAudio()       {
+    if (activeAudioDispose) {
+      const fn = activeAudioDispose;
+      activeAudioDispose = null;
+      fn();
+    }
+    speech.stopCurrent();
+  }
 
   function PlayTriangleIcon() {
     return h(
@@ -108,14 +118,27 @@ export function createNbSpeakClientPlugin(React     , cssText        ) {
     const { voiceNote } = props;
     const [playing, setPlaying] = React.useState(false);
     const [progress, setProgress] = React.useState(0);
+    const [durationSeconds, setDurationSeconds] = React.useState(voiceNote.durationSeconds);
     const stopRef = React.useRef(null                       );
+    const audioRef = React.useRef(null                           );
     const bars = React.useMemo(() => computeWaveformHeights(voiceNote.text, 22), [voiceNote.text]);
+
+    React.useEffect(() => {
+      setDurationSeconds(voiceNote.durationSeconds);
+    }, [voiceNote.durationSeconds]);
 
     React.useEffect(() => {
       return () => {
         if (stopRef.current) stopRef.current();
       };
     }, []);
+
+    const startSpeechFallback = () => {
+      stopRef.current = speech.play(voiceNote.text, durationSeconds, (ratio, isPlaying) => {
+        setProgress(ratio);
+        setPlaying(isPlaying);
+      });
+    };
 
     const togglePlay = () => {
       if (playing) {
@@ -125,10 +148,39 @@ export function createNbSpeakClientPlugin(React     , cssText        ) {
         setProgress(0);
         return;
       }
-      stopRef.current = speech.play(voiceNote.text, voiceNote.durationSeconds, (ratio, isPlaying) => {
-        setProgress(ratio);
-        setPlaying(isPlaying);
-      });
+      stopGlobalAudio();
+
+      const audioEl = audioRef.current;
+      if (voiceNote.audioSrc && audioEl && typeof audioEl.play === 'function') {
+        let disposed = false;
+        const stopHtmlAudio = () => {
+          if (disposed) return;
+          disposed = true;
+          try {
+            audioEl.pause();
+            audioEl.currentTime = 0;
+          } catch {
+            // Ignore audio reset errors
+          }
+          if (activeAudioDispose === stopHtmlAudio) activeAudioDispose = null;
+          setPlaying(false);
+          setProgress(0);
+        };
+        stopRef.current = stopHtmlAudio;
+        activeAudioDispose = stopHtmlAudio;
+        setPlaying(true);
+        setProgress(0.04);
+        const playResult = audioEl.play();
+        if (playResult && typeof playResult.catch === 'function') {
+          playResult.catch(() => {
+            stopHtmlAudio();
+            startSpeechFallback();
+          });
+        }
+        return;
+      }
+
+      startSpeechFallback();
     };
 
     const activeBars = playing ? Math.max(1, Math.round(progress * bars.length)) : 0;
@@ -143,7 +195,35 @@ export function createNbSpeakClientPlugin(React     , cssText        ) {
         'data-nb-speak': 'voice-note',
         'data-emotion': voiceNote.emotion,
         'data-playing': playing ? 'true' : 'false',
+        'data-audio-mode': voiceNote.audioSrc ? 'elevenlabs-audio' : 'web-speech',
       },
+      voiceNote.audioSrc
+        ? h('audio', {
+            ref: audioRef,
+            src: voiceNote.audioSrc,
+            preload: 'metadata',
+            hidden: true,
+            'aria-hidden': 'true',
+            'data-nb-speak-audio': 'true',
+            onLoadedMetadata: (ev     ) => {
+              const dur = ev?.currentTarget?.duration;
+              if (typeof dur === 'number' && Number.isFinite(dur) && dur > 0) {
+                setDurationSeconds(Math.max(1, Math.round(dur)));
+              }
+            },
+            onTimeUpdate: (ev     ) => {
+              const el = ev?.currentTarget;
+              const dur = el?.duration > 0 ? el.duration : durationSeconds;
+              if (el && dur > 0 && !el.paused) {
+                setProgress(Math.max(0.04, Math.min(1, el.currentTime / dur)));
+              }
+            },
+            onEnded: () => {
+              if (stopRef.current) stopRef.current();
+              stopRef.current = null;
+            },
+          })
+        : null,
       h(
         'div',
         { className: 'nb-speak-voice-top' },
@@ -172,7 +252,7 @@ export function createNbSpeakClientPlugin(React     , cssText        ) {
         h(
           'span',
           { className: 'nb-speak-voice-meta' },
-          `${formatShortDuration(voiceNote.durationSeconds)} · ${voiceNote.emotion}`,
+          `${formatShortDuration(durationSeconds)} · ${voiceNote.emotion}`,
         ),
       ),
       h('p', { className: 'nb-speak-voice-caption' }, voiceNote.text),
@@ -423,7 +503,7 @@ export function createNbSpeakClientPlugin(React     , cssText        ) {
     inject: ['slots', 'locale', 'uiConversation'],
     apply(ctx     ) {
       ctx.effect(() => {
-        speech.stopCurrent();
+        stopGlobalAudio();
         if (typeof document === 'undefined') return () => {};
         const tagId = '@nb-corp/nb-speak-dsh/client.css';
         let styleEl = document.querySelector(`style[data-plugin-css="${tagId}"]`)                           ;
@@ -437,7 +517,7 @@ export function createNbSpeakClientPlugin(React     , cssText        ) {
           styleEl.textContent = cssText;
         }
         return () => {
-          speech.stopCurrent();
+          stopGlobalAudio();
           styleEl?.remove();
         };
       }, 'nb-speak: styles & speech cleanup');

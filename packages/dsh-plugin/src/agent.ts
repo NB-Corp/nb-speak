@@ -3,11 +3,13 @@ import {
   type DshSystemPromptServiceLike,
   type DshToolsServiceLike,
 } from './dsh-tools.ts';
+import { createVoiceNoteSynthesizer, type VoiceNoteSynthesizer } from './tts.ts';
 import type { StyleSliderConfig } from './weights.ts';
 
 export interface NbSpeakHostServiceLike {
   getSliderConfig(): StyleSliderConfig;
   getCustomSoul(): string;
+  readonly synthesizeVoiceNote?: VoiceNoteSynthesizer;
 }
 
 export interface AgentContextLike {
@@ -25,10 +27,15 @@ export const inject = {
 };
 
 export function apply(ctx: AgentContextLike): void {
+  const fallbackSynthesizer = createVoiceNoteSynthesizer();
   ctx.effect(() =>
     registerSpeakToolsAndPrompt(ctx.tools, ctx.systemPrompt, {
       getSliderConfig: () => ctx.nbSpeak?.getSliderConfig() ?? { preset: 'neutral_peer' },
       getCustomSoul: () => ctx.nbSpeak?.getCustomSoul() ?? '',
+      synthesizeVoiceNote: (input) =>
+        ctx.nbSpeak?.synthesizeVoiceNote
+          ? ctx.nbSpeak.synthesizeVoiceNote(input)
+          : fallbackSynthesizer(input),
     }),
   );
 }

@@ -1,22 +1,24 @@
 AI-Synthesized Demo Audio Notice
 ================================
 
-The static `.mp3` voice-note demonstration clips in this directory (`sre-en.mp3`,
-`handoff-en.mp3`, `sre-zh.mp3`, `handoff-zh.mp3`) are AI-generated synthetic
-speech created solely to demonstrate the `nb-speak` playground voice-note UI:
+All static `.mp3` voice-note demonstration clips in this directory (`casual-en.mp3`,
+`casual-zh.mp3`, `sql-en.mp3`, `sql-zh.mp3`, `kanban-en.mp3`, `kanban-zh.mp3`,
+`persona-en.mp3`, `persona-zh.mp3`, `sre-en.mp3`, `sre-zh.mp3`, `handoff-en.mp3`,
+`handoff-zh.mp3`) are AI-generated synthetic speech created solely to demonstrate
+`nb-speak` complementary voice-note playback:
 
-- English clips (`*-en.mp3`): Synthesized via ElevenLabs (`eleven_v4`) using
-  official premade platform voices under a paid Creator subscription.
-- Chinese clips (`*-zh.mp3`): Synthesized via Alibaba Cloud Model Studio
-  (`qwen-audio-3.1-tts-plus`) using official preset system voices.
+- Engine: ElevenLabs (`eleven_v4`) across both English and Mandarin Chinese clips,
+  loudness-normalized to `-16 LUFS`.
+- Voices: Official ElevenLabs premade platform voices (`Jessica`, `Sarah`, `Julia`,
+  `ZiYue`, and `ShanShan`) under a paid Creator subscription.
 
-No real person's voice was cloned or impersonated.
+Zero real-person voice cloning or impersonation was used.
 
 Scope relative to the repository MIT License:
-While all source code, protocol schemas, CLI tools, and documentation in this
-repository are licensed under the MIT License (`LICENSE`), these bundled demo
-audio files remain subject to upstream AI provider terms (ElevenLabs Prohibited
-Use Policy and Alibaba Cloud Model Studio Service Terms): they may be played,
-cached, and redistributed as part of project forks/previews with AI disclosure,
-but may not be used to train, fine-tune, or develop competing AI or speech
-synthesis models, or misrepresented as real human recordings.
+While all source code, protocol schemas, CLI tools, DSH plugin, skills, and
+documentation in this repository are licensed under the MIT License (`LICENSE`),
+these bundled demo audio files remain subject to upstream provider terms
+(ElevenLabs Prohibited Use Policy): they may be played, cached, and redistributed
+as part of project forks/previews with AI disclosure, but may not be extracted or
+used to train, fine-tune, or develop competing AI or speech synthesis models, or
+misrepresented as real human recordings.

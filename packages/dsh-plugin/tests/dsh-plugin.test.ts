@@ -22,6 +22,11 @@ import {
   createSendBubbleToolDefinition,
 } from '../src/dsh-tools.ts';
 import {
+  createVoiceNoteSynthesizer,
+  prepareElevenLabsMandarinText,
+  resolveElevenLabsVoiceId,
+} from '../src/tts.ts';
+import {
   computeWaveformHeights,
   NB_SPEAK_TURN_DATA_KEY,
   nbSpeakTurnDefinition,
@@ -483,7 +488,7 @@ test('install-dsh.mjs supports reversible --dry-run / --apply / --uninstall with
       runtimeMode: 'skill',
       preset: 'sharp_lead',
       bridgePort: 18095,
-      upstreamUrl: 'https://axon.littleamgroup.online/v1',
+      upstreamUrl: 'https://api.example.test/v1',
       cloudModel: 'cmd/deepseek-v4.1-flash',
       apiKeyRef: 'AXON_API_KEY',
       wireProvider: true,
@@ -752,4 +757,91 @@ test('WebUI client turn reducer + compiled dist/client.js ModuleLoader bundle re
   assert.ok(renderedTree.includes('nb-speak-bubble'));
   assert.ok(renderedTree.includes('nb-speak-voice-pill'));
   assert.ok(renderedTree.includes('nb-speak-artifact-card'));
+  assert.ok(renderedTree.includes('web-speech'));
+
+  const stateWithAudio = nbSpeakTurnDefinition.update(
+    { state },
+    {
+      event: {
+        type: 'tool/result',
+        seq: 12,
+        data: {
+          turn: 3,
+          message: { source: { callId: 'call_bub_1' }, isError: false },
+          meta: {
+            kind: 'nb-speak/bubbles',
+            bubbles: ['八成是在锁里调了回调', '无死锁版本放下面了'],
+            voiceNote: {
+              text: '先把伞买了别吹冷风',
+              emotion: 'warm',
+              durationSeconds: 5,
+              audioSrc: 'data:audio/mpeg;base64,SUQzBAAAAAAAI1RTU0U=',
+            },
+          },
+        },
+      },
+    },
+  );
+  const locWithAudio = nbSpeakTurnDefinition.buildLocationData({ state: stateWithAudio }, 'turn', loc);
+  assert.equal(
+    locWithAudio?.value.bubbles[0]?.voiceNote?.audioSrc,
+    'data:audio/mpeg;base64,SUQzBAAAAAAAI1RTU0U=',
+  );
+  const renderedWithAudio = JSON.stringify(
+    turnTailSlot.component({
+      turn: {
+        data: new Map([[NB_SPEAK_TURN_DATA_KEY, locWithAudio!.value]]),
+      },
+    }),
+  );
+  assert.ok(renderedWithAudio.includes('elevenlabs-audio'));
+  assert.ok(renderedWithAudio.includes('data-nb-speak-audio'));
+});
+
+test('Optional ElevenLabs TTS synthesizer produces DataURI audio when configured and falls back cleanly without keys', async () => {
+  const noKeySynth = createVoiceNoteSynthesizer({ env: {} });
+  const emptyRes = await noKeySynth({ text: '刚下班，先买瓶热乌龙茶缓一口气。', emotion: 'warm' });
+  assert.equal(emptyRes, undefined);
+
+  assert.equal(resolveElevenLabsVoiceId('auto', 'warm'), 'cgSgspJ2msm6clMCkdW9');
+  assert.equal(resolveElevenLabsVoiceId('auto', 'calm'), 'tOuLUAIdXShmWH7PEUrU');
+  const anchored = prepareElevenLabsMandarinText('外面起风了，顺手带件外套', 'cgSgspJ2msm6clMCkdW9');
+  assert.equal(anchored.languageCode, 'zh');
+  assert.equal(anchored.text, '[Standard Mandarin accent] 外面起风了，顺手带件外套。');
+
+  let capturedUrl = '';
+  let capturedBody: Record<string, unknown> = {};
+  const fakeMp3 = Buffer.alloc(4096, 0x55);
+  const directSynth = createVoiceNoteSynthesizer({
+    env: { ELEVENLABS_API_KEY: 'YOUR_API_KEY' },
+    fetchImpl: async (url, init) => {
+      capturedUrl = String(url);
+      capturedBody = JSON.parse(String(init?.body || '{}')) as Record<string, unknown>;
+      return new Response(fakeMp3, { status: 200, headers: { 'content-type': 'audio/mpeg' } });
+    },
+  });
+
+  const bubbleDef = createSendBubbleToolDefinition({ synthesizeVoiceNote: directSynth }) as Record<string, any>;
+  const out = await bubbleDef.execute({
+    bubbles: ['周五脑子宕机太正常了', '拿盒关东煮萝卜配热茶先垫垫'],
+    voice_note: { text: '别盯着热量表算啦。挑个顺眼的结账回家瘫着去。', emotion: 'warm' },
+  });
+  assert.ok(capturedUrl.includes('/v1/text-to-speech/cgSgspJ2msm6clMCkdW9'));
+  assert.equal(capturedBody.model_id, 'eleven_v4');
+  assert.equal(capturedBody.language_code, 'zh');
+  assert.ok(String(out.audioSrc).startsWith('data:audio/mpeg;base64,'));
+
+  // Ensure LLM tool render() strips audioSrc DataURI so context tokens stay compact
+  const llmRendered = JSON.stringify(bubbleDef.output.render({}, out));
+  assert.ok(!llmRendered.includes('data:audio/mpeg;base64,'));
+
+  // Ensure WebUI presentationMeta preserves audioSrc for VoiceNotePill <audio>
+  const meta = bubbleDef.output.presentationMeta(
+    {
+      bubbles: ['周五脑子宕机太正常了', '拿盒关东煮萝卜配热茶先垫垫'],
+      voice_note: { text: '别盯着热量表算啦。挑个顺眼的结账回家瘫着去。', emotion: 'warm' },
+    },
+    out,
+  );
+  assert.equal(meta.voiceNote.audioSrc, out.audioSrc);
 });
