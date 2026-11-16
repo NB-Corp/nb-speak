@@ -539,15 +539,29 @@ html[lang^="zh"] .hero-sub {
 }
 
 .voice-pill[data-playing="true"] .voice-bar {
-  opacity: 0.95;
+  opacity: 0.85;
   animation: waveBounce 640ms infinite ease-in-out alternate;
 }
 
+.voice-bar.is-passed {
+  opacity: 1;
+  background: var(--accent-ink);
+}
+
 .voice-transcript {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
   font-size: 12.5px;
   color: var(--muted);
   padding-left: 10px;
   border-left: 2px solid oklch(33% 0.07 var(--h-forest) / 0.28);
+}
+
+.voice-ai-tag {
+  font-size: 11px;
+  color: var(--muted);
+  opacity: 0.78;
 }
 
 .pane-foot {

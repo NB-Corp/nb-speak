@@ -326,4 +326,6 @@ npm test
 
 ## 开源协议
 
-[MIT](LICENSE) © 2026 NB-Corp
+[MIT](LICENSE) © 2026 NB-Corp —— 适用于本仓库全部源码、协议 Schema、CLI 工具、DSH 插件、`chat-human` 技能与文档。
+
+**示例语音资产与 AI 标识说明**：[`apps/web/src/assets/audio/`](apps/web/src/assets/audio/NOTICE.txt)（同步至 `docs/assets/audio/`）中的静态 `.mp3` 示例语音条均为基于官方预设合成音色生成的 AI 合成语音（未克隆任何自然人声纹），仅用于在线体验页演示 `nb-speak` 语音条播放；依据上游语音服务条款，相关音频不可用于训练、微调或开发竞品语音合成大模型，亦不得冒充真人录音传播。

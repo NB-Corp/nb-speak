@@ -29,6 +29,10 @@ Let me know if you need anything else or want me to draft the rollout checklist 
         },
         end_turn: true,
       },
+      voiceAudio: {
+        file: 'sre-en.mp3',
+        durationSec: 6.03,
+      },
       artifacts: [
         {
           title: 'auth-canary-25m.md',
@@ -93,6 +97,10 @@ Hope this helps! Please run this migration and get some rest after deploying.`,
         },
         end_turn: true,
       },
+      voiceAudio: {
+        file: 'handoff-en.mp3',
+        durationSec: 4.83,
+      },
       artifacts: [],
     },
     {
@@ -139,6 +147,10 @@ Hope this helps! Please run this migration and get some rest after deploying.`,
           emotion: 'calm',
         },
         end_turn: true,
+      },
+      voiceAudio: {
+        file: 'sre-zh.mp3',
+        durationSec: 5.59,
       },
       artifacts: [
         {
@@ -203,6 +215,10 @@ WHERE deleted_at IS NULL;
           emotion: 'warm',
         },
         end_turn: true,
+      },
+      voiceAudio: {
+        file: 'handoff-zh.mp3',
+        durationSec: 4.44,
       },
       artifacts: [],
     },

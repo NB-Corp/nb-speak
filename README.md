@@ -326,4 +326,6 @@ npm test
 
 ## License
 
-[MIT](LICENSE) © 2026 NB-Corp
+[MIT](LICENSE) © 2026 NB-Corp — applies to all source code, protocol schemas, CLI tools, DSH plugin, `chat-human` Agent Skill, and documentation.
+
+**Demo Audio Assets & AI Disclosure:** The static sample `.mp3` voice clips in [`apps/web/src/assets/audio/`](apps/web/src/assets/audio/NOTICE.txt) (`docs/assets/audio/`) are AI-synthesized speech generated using official synthetic/preset platform voices under paid commercial terms (no real-person voice cloning). They are included solely to demonstrate `nb-speak` voice-note playback and, per upstream provider terms, may not be extracted or used to train, fine-tune, or develop competing AI/TTS models or misrepresented as human speech.

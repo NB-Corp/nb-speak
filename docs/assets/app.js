@@ -38,6 +38,9 @@ const UI_STRINGS = {
     bridgeOnline: 'Bridge connected',
     bridgeOffline: 'Bridge offline (using local normalizer)',
     lintZero: '0 issues — clean thumb-typed IM payload.',
+    voiceAiTag: 'AI-synthesized demo voice',
+    voicePlayAria: 'Play voice note',
+    voicePauseAria: 'Pause voice note',
   },
   zh: {
     issuesSuffix: (n) => (n === 0 ? 'bubble_lint: 0 告警' : `bubble_lint: ${n} 项问题`),
@@ -53,11 +56,29 @@ const UI_STRINGS = {
     bridgeOnline: '本地桥接已连接',
     bridgeOffline: '本地桥接未启动（当前为离线协议解析模式）',
     lintZero: '0 告警 —— 符合真人拇指打字与语音互补规范。',
+    voiceAiTag: 'AI 合成示例语音',
+    voicePlayAria: '播放语音条',
+    voicePauseAria: '暂停语音条',
   },
 }[LANG];
 
+const AUDIO_BASE = LANG === 'zh' ? '../assets/audio/' : './assets/audio/';
+let activeVoiceStop = null;
+
+function stopActiveVoice() {
+  if (typeof activeVoiceStop === 'function') {
+    const fn = activeVoiceStop;
+    activeVoiceStop = null;
+    fn();
+  }
+}
+
 function svgPlay() {
   return '<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5.5v13l11-6.5-11-6.5z"/></svg>';
+}
+
+function svgPause() {
+  return '<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg>';
 }
 
 function svgCode() {
@@ -71,54 +92,173 @@ function createEl(tag, className, text) {
   return el;
 }
 
-function renderVoicePill(voiceNote) {
+function renderVoicePill(voiceNote, audioMeta = null) {
   const wrap = createEl('div', 'voice-pill-wrap');
   const pill = createEl('button', 'voice-pill');
   pill.type = 'button';
+  pill.setAttribute('data-playing', 'false');
+  pill.setAttribute('aria-pressed', 'false');
+  pill.setAttribute('aria-label', UI_STRINGS.voicePlayAria);
+
   const playOrb = createEl('span', 'voice-play-btn');
   playOrb.innerHTML = svgPlay();
   pill.appendChild(playOrb);
 
   const bars = createEl('span', 'voice-bars');
   const heights = [7, 13, 18, 10, 16, 19, 11, 15, 9, 17, 12, 8, 14, 10];
-  heights.forEach((h, idx) => {
+  const barEls = heights.map((h, idx) => {
     const bar = createEl('span', 'voice-bar');
     bar.style.height = `${h}px`;
     bar.style.animationDelay = `${idx * 45}ms`;
     bars.appendChild(bar);
+    return bar;
   });
   pill.appendChild(bars);
 
-  const estSec = Math.max(4, Math.min(11, Math.round(voiceNote.text.length / 7)));
-  const meta = createEl('span', 'tabular', UI_STRINGS.voiceLabel(estSec, voiceNote.emotion));
+  let durationSec =
+    audioMeta?.durationSec && Number.isFinite(audioMeta.durationSec)
+      ? Math.max(1, Math.round(audioMeta.durationSec))
+      : Math.max(4, Math.min(11, Math.round(voiceNote.text.length / 7)));
+  const meta = createEl('span', 'tabular', UI_STRINGS.voiceLabel(durationSec, voiceNote.emotion));
   pill.appendChild(meta);
 
-  const transcript = createEl('div', 'voice-transcript', `“${voiceNote.text}”`);
+  const transcript = createEl('div', 'voice-transcript');
+  transcript.appendChild(createEl('span', '', `“${voiceNote.text}”`));
+  if (audioMeta?.file) {
+    transcript.appendChild(createEl('span', 'voice-ai-tag', UI_STRINGS.voiceAiTag));
+  }
 
+  const updateBarProgress = (ratio) => {
+    const clamped = Math.max(0, Math.min(1, ratio));
+    const activeCount = Math.round(clamped * barEls.length);
+    barEls.forEach((bar, idx) => {
+      bar.classList.toggle('is-passed', clamped > 0 && idx < activeCount);
+    });
+  };
+
+  if (audioMeta?.file) {
+    const audioEl = document.createElement('audio');
+    audioEl.preload = 'metadata';
+    audioEl.src = `${AUDIO_BASE}${audioMeta.file}`;
+    audioEl.setAttribute('aria-hidden', 'true');
+    audioEl.hidden = true;
+
+    let rafId = null;
+    const tick = () => {
+      if (audioEl.paused || audioEl.ended) {
+        rafId = null;
+        return;
+      }
+      const dur = Number.isFinite(audioEl.duration) && audioEl.duration > 0 ? audioEl.duration : durationSec;
+      updateBarProgress(audioEl.currentTime / dur);
+      rafId = requestAnimationFrame(tick);
+    };
+
+    const setPlayingState = (playing) => {
+      pill.setAttribute('data-playing', playing ? 'true' : 'false');
+      pill.setAttribute('aria-pressed', playing ? 'true' : 'false');
+      pill.setAttribute('aria-label', playing ? UI_STRINGS.voicePauseAria : UI_STRINGS.voicePlayAria);
+      playOrb.innerHTML = playing ? svgPause() : svgPlay();
+      if (!playing && rafId !== null) {
+        cancelAnimationFrame(rafId);
+        rafId = null;
+      }
+    };
+
+    const stopThis = () => {
+      if (!audioEl.paused) audioEl.pause();
+      audioEl.currentTime = 0;
+      setPlayingState(false);
+      updateBarProgress(0);
+    };
+
+    audioEl.addEventListener('loadedmetadata', () => {
+      if (Number.isFinite(audioEl.duration) && audioEl.duration > 0) {
+        durationSec = Math.max(1, Math.round(audioEl.duration));
+        meta.textContent = UI_STRINGS.voiceLabel(durationSec, voiceNote.emotion);
+      }
+    });
+
+    audioEl.addEventListener('ended', () => {
+      audioEl.currentTime = 0;
+      setPlayingState(false);
+      updateBarProgress(0);
+      if (activeVoiceStop === stopThis) activeVoiceStop = null;
+    });
+
+    audioEl.addEventListener('pause', () => {
+      if (!audioEl.ended) setPlayingState(false);
+    });
+
+    audioEl.addEventListener('play', () => {
+      setPlayingState(true);
+      if (rafId === null) rafId = requestAnimationFrame(tick);
+    });
+
+    pill.addEventListener('click', () => {
+      const active = pill.getAttribute('data-playing') === 'true';
+      if (active) {
+        audioEl.pause();
+        setPlayingState(false);
+        return;
+      }
+      stopActiveVoice();
+      activeVoiceStop = stopThis;
+      const playPromise = audioEl.play();
+      if (playPromise && typeof playPromise.catch === 'function') {
+        playPromise.catch(() => {
+          setPlayingState(false);
+        });
+      }
+    });
+
+    wrap.appendChild(pill);
+    wrap.appendChild(audioEl);
+    wrap.appendChild(transcript);
+    return wrap;
+  }
+
+  // Fallback to Web Speech API ONLY for custom dynamic text typed in Live Workspace
   let timer = null;
+  const stopSynth = () => {
+    pill.setAttribute('data-playing', 'false');
+    pill.setAttribute('aria-pressed', 'false');
+    pill.setAttribute('aria-label', UI_STRINGS.voicePlayAria);
+    playOrb.innerHTML = svgPlay();
+    if (window.speechSynthesis) window.speechSynthesis.cancel();
+    if (timer) {
+      clearTimeout(timer);
+      timer = null;
+    }
+  };
+
   pill.addEventListener('click', () => {
     const active = pill.getAttribute('data-playing') === 'true';
     if (active) {
-      pill.setAttribute('data-playing', 'false');
-      if (window.speechSynthesis) window.speechSynthesis.cancel();
-      if (timer) clearTimeout(timer);
+      stopSynth();
+      if (activeVoiceStop === stopSynth) activeVoiceStop = null;
       return;
     }
+    stopActiveVoice();
+    activeVoiceStop = stopSynth;
     pill.setAttribute('data-playing', 'true');
+    pill.setAttribute('aria-pressed', 'true');
+    pill.setAttribute('aria-label', UI_STRINGS.voicePauseAria);
+    playOrb.innerHTML = svgPause();
     if ('speechSynthesis' in window) {
       try {
         window.speechSynthesis.cancel();
         const utter = new SpeechSynthesisUtterance(voiceNote.text);
         utter.lang = /[\u4e00-\u9fff]/.test(voiceNote.text) ? 'zh-CN' : 'en-US';
         utter.rate = 1.03;
-        utter.onend = () => pill.setAttribute('data-playing', 'false');
-        utter.onerror = () => pill.setAttribute('data-playing', 'false');
+        utter.onend = () => stopSynth();
+        utter.onerror = () => stopSynth();
         window.speechSynthesis.speak(utter);
       } catch {
         // Fallback timer below handles UI reset
       }
     }
-    timer = setTimeout(() => pill.setAttribute('data-playing', 'false'), estSec * 1000);
+    timer = setTimeout(() => stopSynth(), durationSec * 1000);
   });
 
   wrap.appendChild(pill);
@@ -148,6 +288,7 @@ let activeScenarioIdx = 0;
 let playGeneration = 0;
 
 function renderSplitStage(scenario, animate = true) {
+  stopActiveVoice();
   playGeneration += 1;
   const gen = playGeneration;
 
@@ -222,7 +363,7 @@ function renderSplitStage(scenario, animate = true) {
       speakStream.appendChild(renderArtifactCard(art));
     }
     if (scenario.speakToolCall.voice_note) {
-      speakStream.appendChild(renderVoicePill(scenario.speakToolCall.voice_note));
+      speakStream.appendChild(renderVoicePill(scenario.speakToolCall.voice_note, scenario.voiceAudio || null));
     }
     return;
   }
@@ -252,7 +393,7 @@ function renderSplitStage(scenario, animate = true) {
         if (scenario.speakToolCall.voice_note) {
           setTimeout(() => {
             if (gen !== playGeneration) return;
-            speakStream.appendChild(renderVoicePill(scenario.speakToolCall.voice_note));
+            speakStream.appendChild(renderVoicePill(scenario.speakToolCall.voice_note, scenario.voiceAudio || null));
           }, 220 + scenario.artifacts.length * 160);
         }
       }
