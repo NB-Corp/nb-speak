@@ -1,0 +1,128 @@
+{
+  "enabled": {
+    "description": "启用 NB Speak 真人短气泡与代码/表格分离编排",
+    "type": "bool",
+    "default": true,
+    "hint": "关闭后插件不修改 LLM 请求与消息发送链。"
+  },
+  "only_llm_result": {
+    "description": "仅处理大模型对话回复（跳过普通指令输出）",
+    "type": "bool",
+    "default": true,
+    "hint": "开启后仅对 LLM 生成的回复执行分泡与表格转换，不影响其他插件的 /help 等命令文本。"
+  },
+  "inject_system_prompt": {
+    "description": "注入 chat-human 手机短气泡物理层提示词",
+    "type": "bool",
+    "default": true,
+    "hint": "在 on_llm_request 注入静态口语物理规则（不拼动态时间戳，保持 DeepSeek/OpenAI/Claude Prefix Cache 命中）。"
+  },
+  "persona_preset": {
+    "description": "语气适配层预设",
+    "type": "string",
+    "default": "keep_host",
+    "options": [
+      "keep_host",
+      "neutral_peer",
+      "sharp_lead",
+      "warm_companion",
+      "calm_sre"
+    ],
+    "labels": [
+      "保留 AstrBot 当前人格（仅启用短气泡物理层）",
+      "平等技术搭档（Neutral Peer）",
+      "干练技术负责人（Sharp Lead）",
+      "熟稔日常伙伴（Warm Companion）",
+      "沉稳值班 SRE（Calm SRE）"
+    ],
+    "hint": "默认 keep_host 100% 尊重你在 AstrBot 人格管理里配置的自定义人设，仅修正分段、句号与管家腔。"
+  },
+  "platform_mode": {
+    "description": "表格与代码块终端渲染模式",
+    "type": "string",
+    "default": "auto",
+    "options": [
+      "auto",
+      "im_compact",
+      "markdown_code"
+    ],
+    "labels": [
+      "自动按平台适配（QQ/微信/飞书转键值卡，TG/Discord 短表转代码卡）",
+      "紧凑键值卡模式（全部管道表格转为手机易读键值列表）",
+      "等宽代码卡模式（<=40 列短表包入代码块，超宽自动转键值列表）"
+    ]
+  },
+  "max_bubbles": {
+    "description": "单轮文字短气泡上限",
+    "type": "int",
+    "default": 4,
+    "slider": {
+      "min": 1,
+      "max": 6,
+      "step": 1
+    },
+    "hint": "超出上限的尾部文字会自动收拢进最后一条气泡，绝不丢弃正文内容；独立代码块与表格卡片不挤占文字气泡配额。"
+  },
+  "target_bubble_cjk_chars": {
+    "description": "单条短气泡目标字数（中文字符基准）",
+    "type": "int",
+    "default": 36,
+    "slider": {
+      "min": 16,
+      "max": 80,
+      "step": 2
+    },
+    "hint": "突破原生 150 字停止分段限制，将长段落按句边界收束在该尺度附近。"
+  },
+  "strip_short_trailing_period": {
+    "description": "短单句与验证码末尾自动去句号",
+    "type": "bool",
+    "default": true,
+    "hint": "自动去掉短单句（如“好的。”）及取件码/单号末尾粘连的正式句号（如“663920。”）。"
+  },
+  "typing_delay_enabled": {
+    "description": "启用拟真拇指打字间隔",
+    "type": "bool",
+    "default": true,
+    "hint": "按气泡字数与停顿标点计算 0.36s–2.1s 自然发送间隔。"
+  },
+  "typing_speed_multiplier": {
+    "description": "打字速度倍率",
+    "type": "float",
+    "default": 1.0,
+    "slider": {
+      "min": 0.5,
+      "max": 5.0,
+      "step": 0.25
+    },
+    "hint": "数值越大发送间隔越短（例如 2.0 表示两倍速）。"
+  },
+  "enable_voice_notes": {
+    "description": "启用可选末尾互补语音条（默认关闭）",
+    "type": "bool",
+    "default": false,
+    "hint": "默认关闭，仅发送纯文字短气泡与代码/表格卡。开启且配置兼容 OpenAI /v1/audio/speech 的接口后，支持将末尾 <voice_note> 合成为独立语音消息。"
+  },
+  "tts_api_base": {
+    "description": "可选语音 TTS 接口地址（OpenAI /v1/audio/speech 兼容）",
+    "type": "string",
+    "default": "",
+    "hint": "例如 http://127.0.0.1:8000/v1（仅在开启可选语音条时使用，合成失败静默降级纯文字）。"
+  },
+  "tts_api_key": {
+    "description": "可选语音 TTS API Key",
+    "type": "string",
+    "default": "",
+    "secret": true
+  },
+  "tts_model": {
+    "description": "可选语音模型名",
+    "type": "string",
+    "default": "tts-1"
+  },
+  "tts_voice": {
+    "description": "可选语音音色 ID",
+    "type": "string",
+    "default": "alloy"
+  }
+}

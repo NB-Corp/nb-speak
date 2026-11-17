@@ -1,0 +1,33 @@
+name: astrbot_plugin_nb_speak
+display_name: NB Speak 真人短气泡与代码表格分离
+short_desc: 解决超过 150 字不分段、正则切碎代码块与 QQ/微信裸吐 Markdown 管道表格三大痛点，让机器人像真人一样发短气泡。
+desc: |
+  基于 NB-Corp chat-human 与 nb-speak 协议的 AstrBot 原生对话体感插件（Python 3.10+ 零第三方重依赖）：
+  1. 突破原生 segmented_reply 超过 150 字即停止分段的阈值限制，长短回复均按拇指阅读节奏自然切分为 1-4 条短气泡；
+  2. 占位符级保护 ``` 代码块与 URL/小数点，绝不把代码、SQL 与链接切成碎片；
+  3. 自动识别裸 Markdown 管道表格（|---|），在 QQ/微信/飞书转为清爽手机键值卡，在 Telegram/Discord 短表转为对齐等宽代码卡；
+  4. 注入静态缓存友好的 chat-human 口语物理层（省冗余句号、去客服管家套话与剧本括号），内置 8 规则 bubble_lint，可选语音默认关闭（enable_voice_notes: false）。
+version: 0.2.0
+author: NB-Corp
+repo: https://github.com/NB-Corp/astrbot_plugin_nb_speak
+astrbot_version: ">=4.16.0"
+support_platforms:
+  - aiocqhttp
+  - qq_official
+  - qq_official_webhook
+  - weixin_oc
+  - wecom
+  - wecom_ai_bot
+  - telegram
+  - lark
+  - dingtalk
+  - discord
+  - slack
+  - kook
+  - vocechat
+  - satori
+tags:
+  - 分段回复
+  - 去AI味
+  - 气泡物理
+  - Markdown清洗

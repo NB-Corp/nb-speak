@@ -52,7 +52,7 @@ STAGE_BRACKET_RE = re.compile(
 )
 
 STEWARD_CLICHE_RE = re.compile(
-    r"(?:向你汇报|请(?:随时)?检阅|顺手替你|乖乖(?:去)?(?:睡觉|补觉)|希望(?:这|对您|对你)有帮助|reporting\s+back\s+to\s+you|for\s+your\s+(?:kind\s+)?review|hope\s+this\s+helps|let\s+me\s+know\s+if\s+you\s+need\s+anything\s+else)",
+    r"(?:向你汇报|请(?:随时)?检阅|顺手替你|乖乖(?:去)?(?:睡觉|补觉)|希望(?:这)?(?:对您|对你)?有帮助|reporting\s+back\s+to\s+you|for\s+your\s+(?:kind\s+)?review|hope\s+this\s+helps|let\s+me\s+know\s+if\s+you\s+need\s+anything\s+else)",
     re.IGNORECASE,
 )
 

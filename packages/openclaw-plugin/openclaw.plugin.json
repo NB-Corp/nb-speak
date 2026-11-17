@@ -1,0 +1,139 @@
+{
+  "id": "nb-speak-openclaw",
+  "name": "NB Speak — Human IM Bubbles & Table Gate",
+  "description": "Stops OpenClaw from dumping raw Markdown pipe tables and 250-word essays into Telegram, WhatsApp, Discord, and Signal. Adds send_bubble + send_artifact tools, bundled chat-human skill, and a deterministic outbound formatting gate.",
+  "version": "0.2.0",
+  "categories": ["channels"],
+  "skills": ["./skills"],
+  "contracts": {
+    "tools": ["send_bubble", "send_artifact"]
+  },
+  "toolMetadata": {
+    "send_bubble": {
+      "optional": true,
+      "profiles": ["messaging", "coding"]
+    },
+    "send_artifact": {
+      "optional": true,
+      "profiles": ["messaging", "coding"]
+    }
+  },
+  "activation": {
+    "onStartup": true
+  },
+  "reload": {
+    "turnHandover": true
+  },
+  "recommendedPrompts": [
+    "Summarize the latest deploy metrics in two quick mobile chat beats.",
+    "Compare Postgres vs SQLite for our cron worker without raw pipe tables."
+  ],
+  "uiHints": {
+    "persona": {
+      "label": "Active Persona Layer"
+    },
+    "tableMode": {
+      "label": "Mobile Table Formatting Mode"
+    },
+    "maxMonospaceWidth": {
+      "label": "Max Monospace Table Width (columns)",
+      "placeholder": "40"
+    },
+    "enableVoiceNotes": {
+      "label": "Enable Optional Voice Notes (Off by Default)"
+    },
+    "ttsBaseUrl": {
+      "label": "OpenAI-Compatible TTS Base URL",
+      "placeholder": "http://127.0.0.1:8000/v1"
+    },
+    "ttsApiKey": {
+      "label": "TTS API Key",
+      "sensitive": true
+    }
+  },
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "enabled": {
+        "type": "boolean",
+        "default": true
+      },
+      "persona": {
+        "type": "string",
+        "enum": ["neutral_peer", "sharp_lead", "warm_companion", "calm_sre", "custom"],
+        "default": "neutral_peer"
+      },
+      "customSoul": {
+        "type": "string",
+        "default": ""
+      },
+      "registerTools": {
+        "type": "boolean",
+        "default": true
+      },
+      "injectPrompt": {
+        "type": "boolean",
+        "default": true
+      },
+      "outboundGate": {
+        "type": "boolean",
+        "default": true
+      },
+      "pacedToolDelivery": {
+        "type": "boolean",
+        "default": true
+      },
+      "tableMode": {
+        "type": "string",
+        "enum": ["auto", "kv", "code"],
+        "default": "auto"
+      },
+      "maxMonospaceWidth": {
+        "type": "integer",
+        "minimum": 24,
+        "maximum": 120,
+        "default": 40
+      },
+      "maxBubbles": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 6,
+        "default": 4
+      },
+      "cadenceSpeed": {
+        "type": "number",
+        "minimum": 0.25,
+        "maximum": 50,
+        "default": 1
+      },
+      "channels": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "default": []
+      },
+      "enableVoiceNotes": {
+        "type": "boolean",
+        "default": false
+      },
+      "ttsBaseUrl": {
+        "type": "string",
+        "default": ""
+      },
+      "ttsApiKey": {
+        "type": "string",
+        "default": ""
+      },
+      "ttsModel": {
+        "type": "string",
+        "default": "tts-1"
+      },
+      "ttsVoice": {
+        "type": "string",
+        "default": "alloy"
+      }
+    }
+  }
+}

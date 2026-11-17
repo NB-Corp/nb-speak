@@ -65,7 +65,7 @@ function buildDshClientBundle() {
   fs.writeFileSync(path.join(dshDist, 'client.js'), bundle, 'utf8');
 }
 
-function buildBrowserEngine() {
+function buildCoreSingleFileSource() {
   const coreSrc = path.join(ROOT, 'packages', 'core', 'src');
   const files = ['protocol.ts', 'lint.ts', 'parser.ts'];
   const chunks = [
@@ -78,7 +78,11 @@ function buildBrowserEngine() {
     const withoutLocalImports = stripped.replace(/^\s*import\s+[\s\S]*?from\s+['"]\.\/[^'"]+['"];?\s*$/gm, '');
     chunks.push(`// --- ${name} ---\n${withoutLocalImports.trim()}`);
   }
-  const combined = chunks.join('\n\n') + '\n';
+  return chunks.join('\n\n') + '\n';
+}
+
+function buildBrowserEngine() {
+  const combined = buildCoreSingleFileSource();
   for (const targetRel of [
     path.join('apps', 'web', 'src', 'assets', 'nb-speak-browser.js'),
     path.join('docs', 'assets', 'nb-speak-browser.js'),
@@ -86,6 +90,52 @@ function buildBrowserEngine() {
     const outPath = path.join(ROOT, targetRel);
     fs.mkdirSync(path.dirname(outPath), { recursive: true });
     fs.writeFileSync(outPath, combined, 'utf8');
+  }
+}
+
+function buildOpenClawPlugin() {
+  const ocRoot = path.join(ROOT, 'packages', 'openclaw-plugin');
+  const ocSrc = path.join(ocRoot, 'src');
+  const ocDist = path.join(ocRoot, 'dist');
+  if (!fs.existsSync(ocSrc)) return 0;
+
+  fs.mkdirSync(ocDist, { recursive: true });
+  fs.writeFileSync(path.join(ocDist, 'core.js'), buildCoreSingleFileSource(), 'utf8');
+
+  let count = 0;
+  for (const entry of fs.readdirSync(ocSrc, { withFileTypes: true })) {
+    if (!entry.isFile() || !entry.name.endsWith('.ts')) continue;
+    const tsCode = fs.readFileSync(path.join(ocSrc, entry.name), 'utf8');
+    const jsRaw = stripTypeScriptTypes(tsCode, { mode: 'strip' });
+    const jsCode = jsRaw
+      .replace(/(from\s+['"])\.\.\/\.\.\/core\/src\/(?:protocol|lint|parser)\.ts(['"])/g, '$1./core.js$2')
+      .replace(/(from\s+['"]\.\/[^'"]+)\.ts(['"])/g, '$1.js$2');
+    fs.writeFileSync(path.join(ocDist, entry.name.replace(/\.ts$/, '.js')), jsCode, 'utf8');
+    count += 1;
+  }
+
+  // Sync canonical chat-human skill into OpenClaw plugin bundle
+  const skillSrc = path.join(ROOT, 'skills', 'chat-human');
+  const skillDest = path.join(ocRoot, 'skills', 'chat-human');
+  if (fs.existsSync(skillSrc)) {
+    fs.rmSync(skillDest, { recursive: true, force: true });
+    copyDirRecursive(skillSrc, skillDest);
+  }
+  return count;
+}
+
+function syncAstrBotPluginAssets() {
+  const astrRoot = path.join(ROOT, 'integrations', 'astrbot_plugin_nb_speak');
+  if (!fs.existsSync(astrRoot)) return;
+  const lintSrc = path.join(ROOT, 'skills', 'chat-human', 'scripts', 'bubble_lint.py');
+  if (fs.existsSync(lintSrc)) {
+    fs.copyFileSync(lintSrc, path.join(astrRoot, 'bubble_lint.py'));
+  }
+  const skillMdSrc = path.join(ROOT, 'skills', 'chat-human', 'SKILL.md');
+  if (fs.existsSync(skillMdSrc)) {
+    const astrSkillDir = path.join(astrRoot, 'skills', 'chat-human');
+    fs.mkdirSync(astrSkillDir, { recursive: true });
+    fs.copyFileSync(skillMdSrc, path.join(astrSkillDir, 'SKILL.md'));
   }
 }
 
@@ -104,6 +154,7 @@ const webOnly = process.argv.includes('--web-only');
 
 let coreCount = 0;
 let dshCount = 0;
+let openClawCount = 0;
 if (!webOnly) {
   coreCount = compileDir(
     path.join(ROOT, 'packages', 'core', 'src'),
@@ -114,6 +165,8 @@ if (!webOnly) {
     path.join(ROOT, 'packages', 'dsh-plugin', 'dist'),
   );
   buildDshClientBundle();
+  openClawCount = buildOpenClawPlugin();
+  syncAstrBotPluginAssets();
 }
 buildBrowserEngine();
 copyDirRecursive(path.join(ROOT, 'apps', 'web', 'src'), path.join(ROOT, 'docs'));
@@ -127,5 +180,5 @@ for (const geoName of ['llms.txt', 'llms-full.txt']) {
 console.log(
   webOnly
     ? 'Synced browser engine and apps/web/src -> docs/ (--web-only).'
-    : `Built @nb-corp/nb-speak (${coreCount} files), @nb-corp/nb-speak-dsh (${dshCount} files), and synced docs/.`,
+    : `Built @nb-corp/nb-speak (${coreCount} files), @nb-corp/nb-speak-dsh (${dshCount} files), @nb-corp/nb-speak-openclaw (${openClawCount} files), and synced docs/.`,
 );

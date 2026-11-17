@@ -8,21 +8,19 @@
   <rect x="282" y="53" width="118" height="26" rx="13" fill="#24382c"/>
   <text x="341" y="70" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Consolas, monospace" font-size="12" font-weight="700" fill="#8fd4ab">nb-speak/1</text>
 
-  <text x="48" y="132" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif" font-size="24" font-weight="700" fill="#8fd4ab">How AI agents actually speak to humans.</text>
-  <text x="48" y="168" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif" font-size="16" fill="#a9b2ac">Structured send_message bubbles, send_artifact code cards, complementary voice notes,</text>
-  <text x="48" y="192" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif" font-size="16" fill="#a9b2ac">OpenAI/SSE bridge, DeepSeek Harness plugin, and the chat-human Agent Skill.</text>
+  <text x="48" y="132" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif" font-size="24" font-weight="700" fill="#8fd4ab">Stop Personal Agents from texting like corporate memos.</text>
+  <text x="48" y="168" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif" font-size="16" fill="#a9b2ac">Paced IM bubbles, clean code/table cards, and deterministic bubble_lint</text>
+  <text x="48" y="192" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif" font-size="16" fill="#a9b2ac">for OpenClaw, AstrBot, Claude Code / skills.sh, and OpenAI/SSE bots.</text>
 
   <rect x="760" y="34" width="400" height="192" rx="20" fill="#232825" stroke="#323a35" stroke-width="1.2"/>
-  <rect x="782" y="52" width="268" height="36" rx="16" fill="#2c332f" stroke="#3b443e" stroke-width="1"/>
-  <text x="798" y="75" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="13" font-weight="600" fill="#edf1ee">Error rate held at 0.02%, p99 at 38ms</text>
+  <rect x="782" y="50" width="268" height="34" rx="15" fill="#2c332f" stroke="#3b443e" stroke-width="1"/>
+  <text x="798" y="72" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="13" font-weight="600" fill="#edf1ee">Error rate held at 0.02%, p99 at 38ms</text>
 
-  <rect x="782" y="96" width="286" height="36" rx="16" fill="#2c332f" stroke="#3b443e" stroke-width="1"/>
-  <text x="798" y="119" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="13" font-weight="600" fill="#edf1ee">Pool looks steady, good to push 100%</text>
+  <rect x="782" y="92" width="286" height="34" rx="15" fill="#2c332f" stroke="#3b443e" stroke-width="1"/>
+  <text x="798" y="114" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="13" font-weight="600" fill="#edf1ee">Pool looks steady, good to push 100%</text>
 
-  <rect x="782" y="142" width="224" height="34" rx="17" fill="#24382c" stroke="#365744" stroke-width="1"/>
-  <circle cx="800" cy="159" r="10" fill="#4b8864"/>
-  <polygon points="798,154 798,164 806,159" fill="#f4f7f5"/>
-  <text x="820" y="164" font-family="ui-monospace, SFMono-Regular, Consolas, monospace" font-size="12" font-weight="700" fill="#9de0b8">6s voice · 0 overlap</text>
+  <rect x="782" y="136" width="322" height="42" rx="12" fill="#1c201d" stroke="#3c4a41" stroke-width="1"/>
+  <text x="798" y="161" font-family="ui-monospace, SFMono-Regular, Consolas, monospace" font-size="12" font-weight="700" fill="#9de0b8">[card] idx_orders.sql · 0 raw pipe tables</text>
 
   <text x="784" y="204" font-family="ui-monospace, SFMono-Regular, Consolas, monospace" font-size="11.5" font-weight="700" fill="#8fd4ab">✓ bubble_lint: 0 warnings</text>
 </svg>

@@ -26,8 +26,14 @@ jobs:
       - name: Run @nb-corp/nb-speak core tests
         run: node --test packages/core/tests/*.test.ts
 
+      - name: Run @nb-corp/nb-speak-openclaw plugin tests
+        run: node --test packages/openclaw-plugin/tests/*.test.ts
+
       - name: Run @nb-corp/nb-speak-dsh plugin tests
         run: node --test packages/dsh-plugin/tests/*.test.ts
+
+      - name: Run astrbot_plugin_nb_speak Python tests
+        run: python -B -m unittest discover -s integrations/astrbot_plugin_nb_speak/tests -v
 
       - name: Run chat-human Python stdlib tests
         run: python -B -m unittest discover -s tests -v

@@ -3,8 +3,9 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>nb-speak — 结构化 IM 气泡协议、DSH 插件与 chat-human Agent Skill</title>
-  <meta name="description" content="终结 300 字 Markdown 客服长文墙。nb-speak 为任意大模型提供 send_message + send_artifact 双工具协议、确定性 bubble_lint 校验、DSH 插件与 chat-human 技能。">
+  <title>nb-speak — 面向 OpenClaw、AstrBot 与 skills.sh 的真人短气泡与表格分离套件</title>
+  <meta name="description" content="humanizer 去的是文章 AI 味；nb-speak + chat-human 终结 OpenClaw、AstrBot、Telegram、WhatsApp、微信、QQ 与 Claude Code 机器人的裸管道表格与 250 字公文长文墙。">
+  <meta name="keywords" content="OpenClaw, OpenClaw插件, ClawHub, AstrBot, AstrBot插件, Personal Agent, Telegram机器人, WhatsApp机器人, 微信QQ机器人分段回复, Claude Code技能, skills.sh, nb-speak, chat-human">
   <link rel="canonical" href="https://nb-corp.github.io/nb-speak/zh/">
   <link rel="alternate" hreflang="en" href="https://nb-corp.github.io/nb-speak/">
   <link rel="alternate" hreflang="zh-CN" href="https://nb-corp.github.io/nb-speak/zh/">
@@ -12,16 +13,16 @@
 
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="NB-Corp / nb-speak">
-  <meta property="og:title" content="nb-speak — 让 AI Agent 像真人一样发消息">
-  <meta property="og:description" content="通用 send_message + send_artifact IM 气泡协议、零依赖 OpenAI/SSE 桥接网关、DeepSeek Harness 插件与 chat-human 技能。">
+  <meta property="og:title" content="nb-speak — 让 Personal Agent 像真人一样发消息">
+  <meta property="og:description" content="面向 OpenClaw、AstrBot、Claude Code / skills.sh 与 OpenAI/SSE 机器人的短气泡协议、独立代码/表格卡片与确定性 bubble_lint 门禁。">
   <meta property="og:url" content="https://nb-corp.github.io/nb-speak/zh/">
   <meta property="og:image" content="https://nb-corp.github.io/nb-speak/assets/og-banner-zh.png">
   <meta property="og:image:width" content="1280">
   <meta property="og:image:height" content="640">
 
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="nb-speak — 让 AI Agent 像真人一样发消息">
-  <meta name="twitter:description" content="把冗长 Markdown 论文块拆解为带打字呼吸感的短气泡、独立代码卡片与非重复互补语音条。">
+  <meta name="twitter:title" content="nb-speak — 让 Personal Agent 像真人一样发消息">
+  <meta name="twitter:description" content="终结 OpenClaw 与 AstrBot 的裸 Markdown 管道表格、超过 150 字不分段、代码块切碎与 250 字公文长文墙。">
   <meta name="twitter:image" content="https://nb-corp.github.io/nb-speak/assets/og-banner-zh.png">
 
   <link rel="stylesheet" href="../assets/style.css">
@@ -34,7 +35,8 @@
         "@type": "SoftwareSourceCode",
         "name": "nb-speak",
         "inLanguage": "zh-CN",
-        "description": "通用 send_message + send_artifact IM 气泡协议、OpenAI/SSE 桥接服务、DeepSeek Harness 插件与 chat-human Agent Skill。",
+        "alternateName": ["@nb-corp/nb-speak", "@nb-corp/nb-speak-openclaw", "astrbot_plugin_nb_speak", "chat-human", "@nb-corp/nb-speak-dsh"],
+        "description": "面向 Personal Agent 的短气泡协议、OpenClaw 与 AstrBot 原生插件、OpenAI/SSE 桥接网关与 chat-human Agent Skill。",
         "codeRepository": "https://github.com/NB-Corp/nb-speak",
         "url": "https://nb-corp.github.io/nb-speak/zh/",
         "programmingLanguage": ["TypeScript", "JavaScript", "Python"],
@@ -52,18 +54,18 @@
         "mainEntity": [
           {
             "@type": "Question",
-            "name": "nb-speak 如何解决 AI 聊天机器人动辄输出三百字 Markdown 列表墙的问题？",
+            "name": "nb-speak 如何解决 OpenClaw 裸管道表格乱码和 AstrBot 超过 150 字不分段、切碎代码块的问题？",
             "acceptedAnswer": {
               "@type": "Answer",
-              "text": "nb-speak 将单块 assistant.content 拆分为 send_message（1-4 条拇指打字尺度的短气泡 + 末尾互补语音条）与 send_artifact（将 SQL、代码、Diff 和表格剥离为独立侧滑卡片），并内置确定性 bubble_lint 门禁校验。"
+              "text": "nb-speak 提供 @nb-corp/nb-speak-openclaw 与 astrbot_plugin_nb_speak 两大原生插件，在发送前确定性保护代码块与 URL、将手机窄屏管道表格自动转为键值卡或 <=40 列等宽代码卡，并将长短回复收束为 1-4 条自然短气泡。"
             }
           },
           {
             "@type": "Question",
-            "name": "在 DeepSeek Harness (DSH) 中使用 send_message 会和子代理通信工具重名冲突吗？",
+            "name": "语音气泡是默认开启的吗？是否绑定特定 TTS 厂商？",
             "acceptedAnswer": {
               "@type": "Answer",
-              "text": "不会。@nb-corp/nb-speak-dsh 在请求发往模型前自动将 DSH 内部子代理工具 send_message 透明重映射为 agent_send_message，并在返回时无损还原，彻底隔离面向用户的聊天发送与面向子代理的编排通信。"
+              "text": "不是。enableVoiceNotes 默认关闭（false），开箱仅发送纯文字短气泡与独立代码/表格卡片；显式开启后通用兼容任意 OpenAI /v1/audio/speech 语音接口、本地桥接脚本或浏览器 Web Speech。"
             }
           }
         ]
@@ -102,10 +104,10 @@
           <div class="hero-copy">
             <span class="eyebrow-tag">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-              <span>nb-speak/1 · 通用 IM 短气泡与制品分离协议</span>
+              <span>nb-speak/1 · OpenClaw · AstrBot · skills.sh · OpenAI/SSE</span>
             </span>
-            <h1 class="hero-title">让 AI 像真人一样发消息</h1>
-            <p class="hero-sub">用 <code class="mono">send_message</code> 传递带打字呼吸感的短气泡（支持按需开启语音条），用 <code class="mono">send_artifact</code> 将代码与表格剥离为独立卡片。</p>
+            <h1 class="hero-title">让 Personal Agent 像真人一样发消息</h1>
+            <p class="hero-sub"><code class="mono">humanizer</code> 去的是文章味；<code class="mono">nb-speak</code> 终结 OpenClaw 与 AstrBot 的裸管道表格、碎代码块和两百字公文墙。</p>
           </div>
 
           <div class="scenario-bar" id="scenario-tabs" role="tablist" aria-label="对比场景切换"></div>
@@ -274,34 +276,42 @@
       <section id="install" class="section-gap">
         <div class="section-head">
           <div>
-            <h2 class="section-title">30 秒接入现有技术栈</h2>
-            <p class="section-note">零运行时依赖——既可作为通用 Agent Skill 挂载，也可作为 OpenAI/SSE 本地桥接网关或 DeepSeek Harness 原生插件运行。</p>
+            <h2 class="section-title">30 秒接入主流 Personal Agent</h2>
+            <p class="section-note">零外部依赖，默认纯文字短气泡与独立代码/表格卡片（<code class="mono">enableVoiceNotes = false</code>）。</p>
           </div>
         </div>
 
         <div class="quickstart-grid">
           <div class="cmd-strip">
             <div class="cmd-label">
-              <span>1. 安装 chat-human 技能</span>
+              <span>1. skills.sh · Claude Code · Codex</span>
               <button type="button" class="mini-btn" data-copy-target="cmd-1">复制</button>
             </div>
-            <pre class="cmd-code" id="cmd-1">npx skills add NB-Corp/nb-speak</pre>
+            <pre class="cmd-code" id="cmd-1">npx skills add NB-Corp/nb-speak --global --agent '*'</pre>
           </div>
 
           <div class="cmd-strip">
             <div class="cmd-label">
-              <span>2. 启动 OpenAI / SSE 桥接服务</span>
+              <span>2. OpenClaw（Telegram · WhatsApp · Discord）</span>
               <button type="button" class="mini-btn" data-copy-target="cmd-2">复制</button>
             </div>
-            <pre class="cmd-code" id="cmd-2">npx --yes github:NB-Corp/nb-speak serve --port 18090</pre>
+            <pre class="cmd-code" id="cmd-2">npx --yes github:NB-Corp/nb-speak openclaw --apply</pre>
           </div>
 
           <div class="cmd-strip">
             <div class="cmd-label">
-              <span>3. 一键挂载至 DSH</span>
+              <span>3. AstrBot（面板粘贴仓库 URL 或一键克隆）</span>
               <button type="button" class="mini-btn" data-copy-target="cmd-3">复制</button>
             </div>
-            <pre class="cmd-code" id="cmd-3">npx --yes github:NB-Corp/nb-speak-dsh --apply --profile web</pre>
+            <pre class="cmd-code" id="cmd-3">git clone --depth 1 https://github.com/NB-Corp/astrbot_plugin_nb_speak &lt;AstrBot&gt;/data/plugins/astrbot_plugin_nb_speak</pre>
+          </div>
+
+          <div class="cmd-strip">
+            <div class="cmd-label">
+              <span>4. OpenAI / SSE 桥接与其他客户端 (DSH)</span>
+              <button type="button" class="mini-btn" data-copy-target="cmd-4">复制</button>
+            </div>
+            <pre class="cmd-code" id="cmd-4">npx --yes github:NB-Corp/nb-speak serve --port 18090</pre>
           </div>
         </div>
 
@@ -310,46 +320,46 @@
             <thead>
               <tr>
                 <th>维度</th>
-                <th>nb-speak</th>
+                <th>nb-speak + chat-human</th>
+                <th>文章去 AI 味 (humanizer)</th>
+                <th>原生 OpenClaw / AstrBot</th>
                 <th>传统对话面板 (OpenWebUI / LobeChat)</th>
-                <th>文章去 AI 味提示词</th>
-                <th>普通全文朗读 TTS</th>
               </tr>
             </thead>
             <tbody>
               <tr>
                 <td><strong>输出晶粒</strong></td>
-                <td><code class="mono">1–4</code> 条带节奏短气泡 + <code class="mono">send_artifact</code> 卡片</td>
+                <td><code class="mono">1–4</code> 条带节奏短气泡 + 独立代码/表格卡片</td>
+                <td>多段落散文改写</td>
+                <td>250 字单块长文或 <code class="mono">&lt;=150</code> 字机械切分</td>
                 <td>单块 300 字 <code class="mono">assistant.content</code> 论文墙</td>
-                <td>长段落散文改写</td>
-                <td>把整段 Markdown 照念一遍</td>
               </tr>
               <tr>
-                <td><strong>代码、SQL 与表格</strong></td>
-                <td>通过 <code class="mono">send_artifact</code> 剥离为独立卡片</td>
-                <td>硬塞进狭窄聊天气泡内折行错位</td>
-                <td>保留在正文流中</td>
-                <td>生硬朗读反引号与 URL</td>
+                <td><strong>手机端管道表格</strong></td>
+                <td>自动转为手机键值卡或 <code class="mono">&lt;=40</code> 列等宽代码卡</td>
+                <td>原样保留</td>
+                <td>QQ/微信/WhatsApp 满屏竖线乱码 (<code class="mono">#36323</code>)</td>
+                <td>窄屏严重折行错位</td>
               </tr>
               <tr>
-                <td><strong>语音条物理直觉</strong></td>
-                <td>仅挂末尾气泡，做口语化耳畔补充（重合度 <code class="mono">&lt;50%</code>）</td>
-                <td>机械朗读全文</td>
+                <td><strong>代码块与链接保护</strong></td>
+                <td>占位符保序抽离，独立完整投递</td>
+                <td>保留在正文流</td>
+                <td>正则遇注释句号与 <code class="mono">?</code> 参数直接切碎 (<code class="mono">#8614</code>)</td>
+                <td>硬塞在狭窄聊天气泡内</td>
+              </tr>
+              <tr>
+                <td><strong>语音条默认行为</strong></td>
+                <td>默认关闭；按需开启仅挂末尾气泡（重合度 <code class="mono">&lt;50%</code>）</td>
                 <td>不支持</td>
+                <td>全文机械朗读或未配置报错泄露</td>
                 <td>100% 复读文字内容</td>
-              </tr>
-              <tr>
-                <td><strong>子代理工具防撞</strong></td>
-                <td>自动双向重映射 <code class="mono">send_message &lt;-&gt; agent_send_message</code></td>
-                <td>与多代理框架内部通信工具冲突</td>
-                <td>不涉及</td>
-                <td>不涉及</td>
               </tr>
               <tr>
                 <td><strong>确定性质量门禁</strong></td>
                 <td>TS + Python 双端 <code class="mono">bubble_lint</code>（<code class="mono">97.2%–100%</code> 零八股通过率）</td>
-                <td>无</td>
-                <td>主观提示词约束</td>
+                <td>仅靠提示词启发式约束</td>
+                <td>上下文压缩后反复退化破功</td>
                 <td>无</td>
               </tr>
             </tbody>

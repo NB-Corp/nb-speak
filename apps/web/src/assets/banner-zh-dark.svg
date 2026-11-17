@@ -8,21 +8,19 @@
   <rect x="282" y="51" width="124" height="26" rx="13" fill="#24382c"/>
   <text x="344" y="68" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Consolas, monospace" font-size="12" font-weight="700" fill="#8fd4ab">nb-speak/1</text>
 
-  <text x="48" y="132" font-family="'PingFang SC', 'HarmonyOS Sans SC', 'MiSans', 'Microsoft YaHei UI', 'Noto Sans SC', sans-serif" font-size="27" font-weight="700" fill="#8fd4ab">让 AI Agent 真正说人话</text>
-  <text x="48" y="170" font-family="'PingFang SC', 'HarmonyOS Sans SC', 'MiSans', 'Microsoft YaHei UI', 'Noto Sans SC', sans-serif" font-size="15.5" fill="#a9b2ac">通用 send_message 短气泡 · send_artifact 独立代码/表格卡片 · 末尾互补语音条</text>
-  <text x="48" y="198" font-family="'PingFang SC', 'HarmonyOS Sans SC', 'MiSans', 'Microsoft YaHei UI', 'Noto Sans SC', sans-serif" font-size="15.5" fill="#a9b2ac">零依赖 OpenAI/SSE 桥接网关 · DeepSeek Harness 插件 · bubble_lint 确定性门禁</text>
+  <text x="48" y="132" font-family="'PingFang SC', 'HarmonyOS Sans SC', 'MiSans', 'Microsoft YaHei UI', 'Noto Sans SC', sans-serif" font-size="26" font-weight="700" fill="#8fd4ab">别让你的 Personal Agent 把聊天窗当公文垃圾场</text>
+  <text x="48" y="170" font-family="'PingFang SC', 'HarmonyOS Sans SC', 'MiSans', 'Microsoft YaHei UI', 'Noto Sans SC', sans-serif" font-size="15.5" fill="#a9b2ac">短气泡节拍 · 独立代码/表格卡片 · 终结裸管道表格与 200 字长文墙</text>
+  <text x="48" y="198" font-family="'PingFang SC', 'HarmonyOS Sans SC', 'MiSans', 'Microsoft YaHei UI', 'Noto Sans SC', sans-serif" font-size="15.5" fill="#a9b2ac">原生支持 OpenClaw · AstrBot · skills.sh · 零依赖 OpenAI/SSE 桥接网关</text>
 
   <rect x="752" y="32" width="408" height="196" rx="20" fill="#232825" stroke="#323a35" stroke-width="1.2"/>
-  <rect x="774" y="50" width="286" height="36" rx="16" fill="#2c332f" stroke="#3b443e" stroke-width="1"/>
-  <text x="790" y="73" font-family="'PingFang SC', 'HarmonyOS Sans SC', 'MiSans', 'Microsoft YaHei UI', sans-serif" font-size="13" font-weight="600" fill="#edf1ee">错误率 0.02% 没动，p99 降到 38ms</text>
+  <rect x="774" y="48" width="286" height="34" rx="15" fill="#2c332f" stroke="#3b443e" stroke-width="1"/>
+  <text x="790" y="70" font-family="'PingFang SC', 'HarmonyOS Sans SC', 'MiSans', 'Microsoft YaHei UI', sans-serif" font-size="13" font-weight="600" fill="#edf1ee">错误率 0.02% 没动，p99 降到 38ms</text>
 
-  <rect x="774" y="94" width="268" height="36" rx="16" fill="#2c332f" stroke="#3b443e" stroke-width="1"/>
-  <text x="790" y="117" font-family="'PingFang SC', 'HarmonyOS Sans SC', 'MiSans', 'Microsoft YaHei UI', sans-serif" font-size="13" font-weight="600" fill="#edf1ee">连接池水位也稳，直接推全量吧</text>
+  <rect x="774" y="90" width="268" height="34" rx="15" fill="#2c332f" stroke="#3b443e" stroke-width="1"/>
+  <text x="790" y="112" font-family="'PingFang SC', 'HarmonyOS Sans SC', 'MiSans', 'Microsoft YaHei UI', sans-serif" font-size="13" font-weight="600" fill="#edf1ee">连接池水位也稳，直接推全量吧</text>
 
-  <rect x="774" y="140" width="248" height="34" rx="17" fill="#24382c" stroke="#365744" stroke-width="1"/>
-  <circle cx="792" cy="157" r="10" fill="#4b8864"/>
-  <polygon points="790,152 790,162 798,157" fill="#f4f7f5"/>
-  <text x="812" y="162" font-family="'PingFang SC', 'HarmonyOS Sans SC', 'MiSans', 'Microsoft YaHei UI', sans-serif" font-size="12" font-weight="700" fill="#9de0b8">6秒 · 沉稳补充 · 零复读</text>
+  <rect x="774" y="134" width="332" height="42" rx="12" fill="#1c201d" stroke="#3c4a41" stroke-width="1"/>
+  <text x="790" y="159" font-family="'PingFang SC', 'HarmonyOS Sans SC', 'MiSans', 'Microsoft YaHei UI', sans-serif" font-size="12" font-weight="700" fill="#9de0b8">[独立卡片] idx_orders.sql · 零裸管道表格</text>
 
-  <text x="776" y="204" font-family="'PingFang SC', 'HarmonyOS Sans SC', 'MiSans', 'Microsoft YaHei UI', sans-serif" font-size="12" font-weight="700" fill="#8fd4ab">✓ bubble_lint: 0 告警 · SQL 已剥离至独立卡片</text>
+  <text x="776" y="204" font-family="'PingFang SC', 'HarmonyOS Sans SC', 'MiSans', 'Microsoft YaHei UI', sans-serif" font-size="12" font-weight="700" fill="#8fd4ab">✓ bubble_lint: 0 告警 · 纯文字短气泡默认</text>
 </svg>

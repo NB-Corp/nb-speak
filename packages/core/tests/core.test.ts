@@ -1,6 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
+import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -309,4 +311,44 @@ test('nb-speak CLI runs --version, tools, and lint cleanly', () => {
     }),
   );
   assert.equal(lintOut.ok, true);
+});
+
+test('nb-speak openclaw subcommand forwards arguments to install-openclaw.mjs cleanly', () => {
+  const helpOut = execFileSync(process.execPath, [BIN_PATH, 'openclaw', '--help'], { encoding: 'utf8' });
+  assert.match(helpOut, /npx --yes github:NB-Corp\/nb-speak openclaw --apply/);
+
+  const tmpRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'nb-speak-cli-oc-'));
+  try {
+    const ocHome = path.join(tmpRoot, '.openclaw');
+    const dryRes = JSON.parse(
+      execFileSync(process.execPath, [BIN_PATH, 'openclaw', '--dry-run', '--openclaw-home', ocHome], {
+        encoding: 'utf8',
+      }),
+    );
+    assert.equal(dryRes.ok, true);
+    assert.equal(dryRes.mode, 'dry-run');
+    assert.equal(fs.existsSync(ocHome), false);
+
+    const applyRes = JSON.parse(
+      execFileSync(
+        process.execPath,
+        [BIN_PATH, 'openclaw', '--apply', '--openclaw-home', ocHome, '--preset', 'calm_sre'],
+        { encoding: 'utf8' },
+      ),
+    );
+    assert.equal(applyRes.ok, true);
+    assert.equal(applyRes.mode, 'apply');
+    assert.ok(fs.existsSync(path.join(applyRes.extDir, 'openclaw.plugin.json')));
+    assert.equal(applyRes.plannedConfig.plugins.entries['nb-speak-openclaw'].config.persona, 'calm_sre');
+
+    const uninstRes = JSON.parse(
+      execFileSync(process.execPath, [BIN_PATH, 'openclaw', '--uninstall', '--openclaw-home', ocHome], {
+        encoding: 'utf8',
+      }),
+    );
+    assert.equal(uninstRes.ok, true);
+    assert.equal(fs.existsSync(applyRes.extDir), false);
+  } finally {
+    fs.rmSync(tmpRoot, { recursive: true, force: true });
+  }
 });

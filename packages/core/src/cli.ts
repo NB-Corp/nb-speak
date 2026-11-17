@@ -1,4 +1,6 @@
 import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import {
   buildSpeakSystemPrompt,
   getAnthropicSpeakTools,
@@ -29,6 +31,7 @@ function printHelp(): void {
   console.log(`nb-speak v${NB_SPEAK_VERSION} (${NB_SPEAK_PROTOCOL}) — How AI agents speak to humans
 
 Usage:
+  nb-speak openclaw [options]    Install, preview, or uninstall the native OpenClaw plugin (~/.openclaw)
   nb-speak serve [options]       Start the OpenAI-compatible HTTP/SSE bridge server
   nb-speak lint [options]        Deterministically lint IM bubbles, plain beats & voice notes
   nb-speak parse [options]       Normalize a raw LLM completion or Markdown wall into bubbles & artifacts
@@ -65,6 +68,27 @@ function parseBoolEnv(raw: string | undefined): boolean {
 }
 
 export async function runCli(argv: readonly string[]): Promise<number> {
+  if (argv[0] === 'openclaw') {
+    const cliDir = path.dirname(fileURLToPath(import.meta.url));
+    const installerPath = path.resolve(cliDir, '../../openclaw-plugin/scripts/install-openclaw.mjs');
+    if (!fs.existsSync(installerPath)) {
+      console.error(`OpenClaw installer not found at ${installerPath}`);
+      return 2;
+    }
+    const installerMod = (await import(pathToFileURL(installerPath).href)) as {
+      parseCliArgs: (args: readonly string[]) => Record<string, unknown>;
+      runInstaller: (opts: Record<string, unknown>) => { mode?: string; message?: string; ok?: boolean };
+    };
+    const parsed = installerMod.parseCliArgs(argv.slice(1));
+    const res = installerMod.runInstaller(parsed);
+    if (res.mode === 'help' || res.mode === 'version') {
+      console.log(res.message ?? '');
+    } else {
+      console.log(JSON.stringify(res, null, 2));
+    }
+    return res.ok === false ? 1 : 0;
+  }
+
   if (argv.length === 0 || argv.includes('--help') || argv.includes('-h')) {
     printHelp();
     return 0;

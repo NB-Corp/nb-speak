@@ -3,8 +3,9 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>nb-speak — Structured IM Bubble Protocol, DSH Plugin &amp; chat-human Skill</title>
-  <meta name="description" content="Stop dumping 300-word Markdown essays in chat. nb-speak gives AI agents a universal send_message + send_artifact protocol, deterministic bubble_lint, DSH plugin, and chat-human Agent Skill.">
+  <title>nb-speak — Personal Agent IM Bubbles &amp; Table Gate for OpenClaw, AstrBot &amp; skills.sh</title>
+  <meta name="description" content="humanizer strips AI tells from essays; nb-speak + chat-human stops OpenClaw, AstrBot, Telegram, WhatsApp, WeChat, QQ, and Claude Code agents from dumping raw pipe tables and 250-word Markdown memos.">
+  <meta name="keywords" content="OpenClaw, OpenClaw plugin, ClawHub, AstrBot, AstrBot plugin, Personal Agent, Telegram bot humanizer, WhatsApp agent bubbles, WeChat QQ bot, Claude Code skill, skills.sh, nb-speak, chat-human">
   <link rel="canonical" href="https://nb-corp.github.io/nb-speak/">
   <link rel="alternate" hreflang="en" href="https://nb-corp.github.io/nb-speak/">
   <link rel="alternate" hreflang="zh-CN" href="https://nb-corp.github.io/nb-speak/zh/">
@@ -12,16 +13,16 @@
 
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="NB-Corp / nb-speak">
-  <meta property="og:title" content="nb-speak — How AI Agents Actually Speak to Humans">
-  <meta property="og:description" content="Universal send_message + send_artifact IM bubble protocol, OpenAI/SSE bridge, DeepSeek Harness plugin, and chat-human Agent Skill.">
+  <meta property="og:title" content="nb-speak — How Personal Agents Speak Human">
+  <meta property="og:description" content="Paced IM bubbles, clean code/table cards, and deterministic bubble_lint for OpenClaw, AstrBot, Claude Code / skills.sh, and OpenAI/SSE bots.">
   <meta property="og:url" content="https://nb-corp.github.io/nb-speak/">
   <meta property="og:image" content="https://nb-corp.github.io/nb-speak/og-banner.png">
   <meta property="og:image:width" content="1280">
   <meta property="og:image:height" content="640">
 
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="nb-speak — How AI Agents Actually Speak to Humans">
-  <meta name="twitter:description" content="Replace 300-word Markdown walls with paced IM bubbles, slide-out code artifacts, complementary voice notes, and deterministic bubble_lint.">
+  <meta name="twitter:title" content="nb-speak — How Personal Agents Speak Human">
+  <meta name="twitter:description" content="Stop OpenClaw, AstrBot, Telegram, WhatsApp, and WeChat agents from dumping raw Markdown pipe tables and 250-word corporate walls.">
   <meta name="twitter:image" content="https://nb-corp.github.io/nb-speak/og-banner.png">
 
   <link rel="stylesheet" href="./assets/style.css">
@@ -33,8 +34,8 @@
       {
         "@type": "SoftwareSourceCode",
         "name": "nb-speak",
-        "alternateName": ["@nb-corp/nb-speak", "@nb-corp/nb-speak-dsh", "chat-human"],
-        "description": "Universal structured send_message + send_artifact IM bubble protocol, OpenAI/SSE bridge, DeepSeek Harness (DSH) plugin, tactile paper-ink web playground, and chat-human Agent Skill.",
+        "alternateName": ["@nb-corp/nb-speak", "@nb-corp/nb-speak-openclaw", "astrbot_plugin_nb_speak", "chat-human", "@nb-corp/nb-speak-dsh"],
+        "description": "Personal Agent IM bubble protocol, native OpenClaw & AstrBot plugins, zero-dependency OpenAI/SSE bridge, and chat-human Agent Skill.",
         "codeRepository": "https://github.com/NB-Corp/nb-speak",
         "url": "https://nb-corp.github.io/nb-speak/",
         "programmingLanguage": ["TypeScript", "JavaScript", "Python"],
@@ -63,18 +64,18 @@
         "mainEntity": [
           {
             "@type": "Question",
-            "name": "How does nb-speak stop AI chat agents from sending 300-word Markdown essays?",
+            "name": "How does nb-speak stop OpenClaw and AstrBot from dumping raw pipe tables and 250-word Markdown essays?",
             "acceptedAnswer": {
               "@type": "Answer",
-              "text": "nb-speak replaces raw assistant.content dumps with two structured output tools—send_message (1-4 short thumb-typed IM bubbles plus an optional final-bubble complementary voice note) and send_artifact (offloading code, SQL, diffs, and tables into slide-out cards)—backed by deterministic bubble_lint validation."
+              "text": "nb-speak ships native outbound gates for OpenClaw (@nb-corp/nb-speak-openclaw) and AstrBot (astrbot_plugin_nb_speak) plus the send_message + send_artifact protocol—converting mobile pipe tables into compact key-value or <=40-col monospace cards, keeping code blocks intact, and delivering 1-4 paced thumb-typed bubbles."
             }
           },
           {
             "@type": "Question",
-            "name": "Does nb-speak work with DeepSeek, OpenAI, Claude, Gemini, and plain-reply harnesses?",
+            "name": "Are voice notes enabled by default?",
             "acceptedAnswer": {
               "@type": "Answer",
-              "text": "Yes. @nb-corp/nb-speak exports native tool schemas for OpenAI/DeepSeek, Anthropic Claude, and Google Gemini, includes a Plain-Reply Fallback parser that extracts fenced code and tables automatically, and ships a zero-dependency HTTP/SSE OpenAI bridge plus a DeepSeek Harness (DSH) plugin."
+              "text": "No. enableVoiceNotes is false by default across all nb-speak plugins and bridges—delivering pure text short bubbles and clean code/table cards out of the box, with strictly opt-in support for any OpenAI-compatible /v1/audio/speech endpoint, local TTS, or Web Speech."
             }
           }
         ]
@@ -115,10 +116,10 @@
           <div class="hero-copy">
             <span class="eyebrow-tag">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-              <span>nb-speak/1 · Universal IM Bubble &amp; Artifact Protocol</span>
+              <span>nb-speak/1 · OpenClaw · AstrBot · skills.sh · OpenAI/SSE</span>
             </span>
-            <h1 class="hero-title">How AI agents speak human.</h1>
-            <p class="hero-sub">Replace 300-word Markdown blobs with paced <code class="mono">send_message</code> beats, slide-out <code class="mono">send_artifact</code> cards, and optional voice notes.</p>
+            <h1 class="hero-title">How Personal Agents speak human.</h1>
+            <p class="hero-sub">Prose humanizers edit essays; <code class="mono">nb-speak</code> stops OpenClaw, AstrBot, and IM bots from dumping pipe tables and 250-word memos.</p>
           </div>
 
           <div class="scenario-bar" id="scenario-tabs" role="tablist" aria-label="Comparison scenarios"></div>
@@ -293,34 +294,42 @@
       <section id="install" class="section-gap">
         <div class="section-head">
           <div>
-            <h2 class="section-title">Drop Into Any Stack in 30 Seconds</h2>
-            <p class="section-note">Zero runtime dependencies. Works as an Agent Skill, an OpenAI/SSE proxy bridge, or a native DeepSeek Harness plugin.</p>
+            <h2 class="section-title">Drop Into Any Personal Agent in 30 Seconds</h2>
+            <p class="section-note">Zero runtime dependencies. Pure text bubbles and clean code/table cards by default (<code class="mono">enableVoiceNotes = false</code>).</p>
           </div>
         </div>
 
         <div class="quickstart-grid">
           <div class="cmd-strip">
             <div class="cmd-label">
-              <span>1. Install chat-human Agent Skill</span>
+              <span>1. skills.sh · Claude Code · Codex</span>
               <button type="button" class="mini-btn" data-copy-target="cmd-1">Copy</button>
             </div>
-            <pre class="cmd-code" id="cmd-1">npx skills add NB-Corp/nb-speak</pre>
+            <pre class="cmd-code" id="cmd-1">npx skills add NB-Corp/nb-speak --global --agent '*'</pre>
           </div>
 
           <div class="cmd-strip">
             <div class="cmd-label">
-              <span>2. Start OpenAI / SSE Bridge</span>
+              <span>2. OpenClaw (Telegram · WhatsApp · Discord)</span>
               <button type="button" class="mini-btn" data-copy-target="cmd-2">Copy</button>
             </div>
-            <pre class="cmd-code" id="cmd-2">npx --yes github:NB-Corp/nb-speak serve --port 18090</pre>
+            <pre class="cmd-code" id="cmd-2">npx --yes github:NB-Corp/nb-speak openclaw --apply</pre>
           </div>
 
           <div class="cmd-strip">
             <div class="cmd-label">
-              <span>3. Mount in DeepSeek Harness (DSH)</span>
+              <span>3. AstrBot (WebUI Paste URL or One-Line Clone)</span>
               <button type="button" class="mini-btn" data-copy-target="cmd-3">Copy</button>
             </div>
-            <pre class="cmd-code" id="cmd-3">npx --yes github:NB-Corp/nb-speak-dsh --apply --profile web</pre>
+            <pre class="cmd-code" id="cmd-3">git clone --depth 1 https://github.com/NB-Corp/astrbot_plugin_nb_speak &lt;AstrBot&gt;/data/plugins/astrbot_plugin_nb_speak</pre>
+          </div>
+
+          <div class="cmd-strip">
+            <div class="cmd-label">
+              <span>4. OpenAI / SSE Bridge &amp; Other Harnesses (DSH)</span>
+              <button type="button" class="mini-btn" data-copy-target="cmd-4">Copy</button>
+            </div>
+            <pre class="cmd-code" id="cmd-4">npx --yes github:NB-Corp/nb-speak serve --port 18090</pre>
           </div>
         </div>
 
@@ -329,46 +338,46 @@
             <thead>
               <tr>
                 <th>Capability</th>
-                <th>nb-speak</th>
+                <th>nb-speak + chat-human</th>
+                <th>Prose Humanizers (humanizer)</th>
+                <th>Vanilla OpenClaw / AstrBot</th>
                 <th>Raw Chat UIs (OpenWebUI / LobeChat)</th>
-                <th>Prose Humanizers</th>
-                <th>Plain TTS Readout</th>
               </tr>
             </thead>
             <tbody>
               <tr>
                 <td><strong>Output unit</strong></td>
-                <td><code class="mono">1–4</code> paced bubbles + <code class="mono">send_artifact</code> cards</td>
+                <td><code class="mono">1–4</code> paced bubbles + isolated code/table cards</td>
+                <td>Rewritten multi-paragraph essays</td>
+                <td>250-word blob or <code class="mono">&lt;=150</code>-char naive slices</td>
                 <td>Single 300-word <code class="mono">assistant.content</code> blob</td>
-                <td>Rewritten prose paragraphs</td>
-                <td>Audio clone of full Markdown blob</td>
               </tr>
               <tr>
-                <td><strong>Code, SQL &amp; tables</strong></td>
-                <td>Offloaded cleanly via <code class="mono">send_artifact</code></td>
+                <td><strong>Mobile pipe tables</strong></td>
+                <td>Auto-converted to KV cards or <code class="mono">&lt;=40</code>-col monospace</td>
+                <td>Left untouched in prose</td>
+                <td>Raw <code class="mono">|---|---|</code> pipe soup on phones (<code class="mono">#36323</code>)</td>
+                <td>Overflows narrow mobile viewports</td>
+              </tr>
+              <tr>
+                <td><strong>Code fences &amp; URLs</strong></td>
+                <td>Token-shielded &amp; delivered intact</td>
+                <td>Left inline</td>
+                <td>Regex slices code comments &amp; <code class="mono">?</code> URLs (<code class="mono">#8614</code>)</td>
                 <td>Crammed inline inside narrow bubbles</td>
-                <td>Left untouched in text stream</td>
-                <td>Reads backticks &amp; URLs aloud</td>
               </tr>
               <tr>
-                <td><strong>Voice note physics</strong></td>
-                <td>Final-bubble complementary aside (<code class="mono">&lt;50%</code> overlap)</td>
-                <td>Full-message screen reader TTS</td>
+                <td><strong>Voice note default</strong></td>
+                <td>Off by default; opt-in final-bubble aside (<code class="mono">&lt;50%</code> overlap)</td>
                 <td>None</td>
+                <td>Full-message screen reader TTS</td>
                 <td>100% verbatim text duplication</td>
-              </tr>
-              <tr>
-                <td><strong>Subagent tool safety</strong></td>
-                <td>Transparent <code class="mono">send_message &lt;-&gt; agent_send_message</code> remap</td>
-                <td>Collides with agent orchestration tools</td>
-                <td>N/A</td>
-                <td>N/A</td>
               </tr>
               <tr>
                 <td><strong>Deterministic gate</strong></td>
                 <td>TS + Python <code class="mono">bubble_lint</code> (<code class="mono">97.2%–100%</code> pass rate)</td>
-                <td>None</td>
-                <td>Subjective prompt heuristics</td>
+                <td>Prompt heuristics only</td>
+                <td>Workspace SOPs regress after compaction</td>
                 <td>None</td>
               </tr>
             </tbody>

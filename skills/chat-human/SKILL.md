@@ -1,10 +1,13 @@
 ---
 name: chat-human
-description: "Write, deliver, lint, or diagnose natural thumb-typed IM / DM chat messages (WeChat/微信, Telegram, Feishu/飞书, Slack, Discord, QQ, WhatsApp, iMessage, send_message bubbles[], SendMessage messages[], or plain-reply chat streams) with pure text bubbles and artifact offload by default (plus optional opt-in TTS voice notes when voice output is enabled). Use when drafting, replying in, or simulating live 1-on-1 or character/persona chats (短气泡/回两句人话/去管家腔, zero *sighs* or essay walls), offloading code/tables via send_artifact, running bubble_lint.py, configuring proactive_gate.py outreach decay, or pairing opt-in voice notes—always load this skill before replying so its Layer 1 bubble/plain-reply delivery contract applies. Not for longform article/fiction de-AI (speak-human), dense deal/news briefings (mobile-im-brief), or README/product docs (reader-first-writing)."
+description: "Write, deliver, lint, or diagnose natural thumb-typed IM / DM chat messages for Personal Agents (OpenClaw, AstrBot, Claude Code, Codex, WeChat/微信, Telegram, WhatsApp, QQ, Feishu/飞书, Slack, Discord, iMessage, send_message bubbles[], SendMessage messages[], or plain-reply chat streams) with pure text bubbles and code/table card offload by default (plus optional opt-in TTS voice notes when voice output is enabled). Use when drafting, replying in, or simulating live 1-on-1 or character/persona chats (短气泡/回两句人话/去管家腔, zero *sighs*, zero raw pipe tables or 200-word essay walls), offloading code/tables via send_artifact, running bubble_lint.py, configuring proactive_gate.py outreach decay, or pairing opt-in voice notes—always load this skill before replying so its Layer 1 bubble/plain-reply delivery contract applies. Not for longform article/fiction de-AI (speak-human), dense deal/news briefings (mobile-im-brief), or README/product docs (reader-first-writing)."
+version: "0.2.0"
 license: MIT
 metadata:
-  short-description: Persona-adaptive thumb-typed IM bubbles (opt-in voice)
+  short-description: Persona-adaptive thumb-typed IM bubbles for Personal Agents (opt-in voice)
   version: "0.2.0"
+  openclaw:
+    homepage: https://github.com/NB-Corp/chat-human
 ---
 
 # Chat Human

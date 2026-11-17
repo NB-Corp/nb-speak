@@ -1,7 +1,7 @@
 {
   "name": "nb-speak",
   "version": "0.2.0",
-  "description": "Universal structured send_message + send_artifact IM bubble protocol, OpenAI/SSE bridge, DeepSeek Harness plugin, tactile paper-ink playground, and chat-human Agent Skill.",
+  "description": "Stop Personal Agents (OpenClaw, AstrBot, Claude Code, Telegram, WhatsApp, WeChat, QQ) from dumping raw pipe tables and 250-word Markdown essays. Universal send_message + send_artifact IM bubble protocol, PA plugins, SSE bridge, and chat-human Skill.",
   "license": "MIT",
   "author": "Nai Long 7th <nailong@xter.org>",
   "repository": {
@@ -16,12 +16,17 @@
   "bin": {
     "nb-speak": "./packages/core/bin/nb-speak.mjs",
     "nb-speak-bridge": "./packages/core/bin/nb-speak.mjs",
+    "nb-speak-openclaw": "./packages/openclaw-plugin/scripts/install-openclaw.mjs",
     "nb-speak-dsh": "./packages/dsh-plugin/scripts/install-dsh.mjs"
   },
   "exports": {
     ".": {
       "types": "./packages/core/src/index.ts",
       "default": "./packages/core/dist/index.js"
+    },
+    "./openclaw": {
+      "types": "./packages/openclaw-plugin/src/plugin.ts",
+      "default": "./packages/openclaw-plugin/dist/plugin.js"
     },
     "./dsh": {
       "types": "./packages/dsh-plugin/src/plugin.ts",
@@ -38,9 +43,11 @@
   "scripts": {
     "build": "node scripts/build.mjs",
     "test:core": "node --test packages/core/tests/*.test.ts",
+    "test:openclaw": "node --test packages/openclaw-plugin/tests/*.test.ts",
     "test:dsh": "node --test packages/dsh-plugin/tests/*.test.ts",
+    "test:astrbot": "python -B -m unittest discover -s integrations/astrbot_plugin_nb_speak/tests -v",
     "test:py": "python -B -m unittest discover -s tests -v",
-    "test": "npm run build && npm run test:core && npm run test:dsh && npm run test:py",
+    "test": "npm run build && npm run test:core && npm run test:openclaw && npm run test:dsh && npm run test:astrbot && npm run test:py",
     "serve": "node packages/core/bin/nb-speak.mjs serve",
     "lint": "node packages/core/bin/nb-speak.mjs lint"
   }
