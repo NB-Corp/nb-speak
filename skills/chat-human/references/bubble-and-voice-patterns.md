@@ -25,7 +25,23 @@ Real instant messaging happens inside a **shared live moment** on a narrow mobil
 
 ### Surface A: Multi-Bubble Tool Harness (`SendMessage` / `messages[]` Present)
 
-Deliver **every** turn through the tool and set `end_turn: true` on the final send so the harness does not emit a duplicate plain-text reply:
+Deliver **every** turn through the tool and set `end_turn: true` on the final send so the harness does not emit a duplicate plain-text reply. Pure text bubbles are the default; include `tts` only when voice output is enabled in host config or requested by the user:
+
+```json
+{
+  "end_turn": true,
+  "messages": [
+    {
+      "text": "Staging deploy went through, auth latency dropped to 40ms"
+    },
+    {
+      "text": "Want me to flip prod now or hold till morning"
+    }
+  ]
+}
+```
+
+When voice output is explicitly enabled (`enableVoiceNotes: true`), attach at most one complementary `tts` block on the final bubble only:
 
 ```json
 {
@@ -65,9 +81,9 @@ Coupled copy-paste unit inside one beat (single `\n`, zero trailing period):
 
 ---
 
-## 3. Writing Mouth-First Voice Notes (`tts.text` Craft)
+## 3. Writing Mouth-First Voice Notes (`tts.text` Craft · Opt-In Only)
 
-Acoustic inspection of IM voice notes shows two main machine giveaways: **breathless comma chains** and **raw visual tokens**.
+Voice notes are **disabled by default**—use pure text bubbles + artifact offload unless voice output is explicitly enabled in host/plugin config or requested by the user. When voice notes are enabled, acoustic inspection shows two main machine giveaways: **breathless comma chains** and **raw visual tokens**.
 
 1. **Complement, never duplicate**:
    - Put exact identifiers, URLs, file paths, command flags, and tabular numbers in **text bubbles**.

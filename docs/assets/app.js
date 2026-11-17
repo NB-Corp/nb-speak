@@ -44,8 +44,8 @@ const UI_STRINGS = {
     bridgeOffline: 'Bridge offline (using local normalizer)',
     lintZero: '0 issues — clean thumb-typed IM payload.',
     voiceAiTag: (voice) =>
-      voice ? `ElevenLabs ${voice} · AI-synthesized` : 'ElevenLabs eleven_v4 · AI-synthesized',
-    voicePlayAria: 'Play ElevenLabs voice note',
+      voice ? `${voice} · AI-synthesized demo` : 'AI-synthesized voice note demo',
+    voicePlayAria: 'Play demo voice note',
     voicePauseAria: 'Pause voice note',
     viewDshShot: 'Live DSH Capture',
   },
@@ -69,8 +69,8 @@ const UI_STRINGS = {
     bridgeOffline: '本地桥接未启动（当前为离线协议解析模式）',
     lintZero: '0 告警 —— 符合真人拇指打字与语音互补规范。',
     voiceAiTag: (voice) =>
-      voice ? `ElevenLabs ${voice} · AI 合成真声` : 'ElevenLabs eleven_v4 · AI 合成真声',
-    voicePlayAria: '播放 ElevenLabs 语音条',
+      voice ? `${voice} · AI 合成示例` : 'AI 合成示例语音条',
+    voicePlayAria: '播放示例语音条',
     voicePauseAria: '暂停语音条',
     viewDshShot: 'DSH 同屏实拍',
   },

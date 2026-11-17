@@ -25,6 +25,7 @@ import {
                                      
                                
                                       
+                                      
                                     
                                       
                                 
@@ -88,8 +89,8 @@ function resolveChatCompletionsEndpoint(baseUrl        )         {
   return `${clean}/v1/chat/completions`;
 }
 
-function mergeSpeakTools(existingTools                       )            {
-  const speakTools = getOpenAISpeakTools();
+function mergeSpeakTools(existingTools                       , enableVoiceNotes = false)            {
+  const speakTools = getOpenAISpeakTools({ enableVoiceNotes });
   if (!existingTools || existingTools.length === 0) return speakTools;
   const names = new Set        ();
   for (const item of existingTools) {
@@ -111,8 +112,9 @@ function prependSpeakSystemMessage(
   messages           ,
   persona                 ,
   customSoul         ,
+  enableVoiceNotes = false,
 )            {
-  const systemBlock = buildSpeakSystemPrompt({ persona, customSoul });
+  const systemBlock = buildSpeakSystemPrompt({ persona, customSoul, enableVoiceNotes });
   if (messages.length > 0 && typeof messages[0] === 'object' && messages[0] !== null) {
     const first = messages[0]                           ;
     if (first.role === 'system' && typeof first.content === 'string') {
@@ -127,6 +129,7 @@ export async function startSpeakBridge(config                    = {})          
   const host = config.host ?? '127.0.0.1';
   const requestedPort = config.port ?? 18090;
   const enableCors = config.enableCors ?? true;
+  const enableVoiceNotes = config.enableVoiceNotes ?? false;
   const fetchFn = config.fetchImpl ?? fetch;
   const sockets = new Set        ();
 
@@ -151,6 +154,7 @@ export async function startSpeakBridge(config                    = {})          
           protocol: NB_SPEAK_PROTOCOL,
           bridgeUrl: `http://${host}:${port}`,
           persona: config.persona ?? 'neutral_peer',
+          voiceNotesEnabled: enableVoiceNotes,
           upstreamConfigured: Boolean(config.upstreamBaseUrl),
           voiceSidecarConfigured: Boolean(config.voiceSidecarUrl),
         },
@@ -265,10 +269,10 @@ export async function startSpeakBridge(config                    = {})          
 
     const rawMessages = Array.isArray(body.messages) ? body.messages : [];
     const outgoingMessages = shouldInject
-      ? prependSpeakSystemMessage(rawMessages, activePersona, activeSoul)
+      ? prependSpeakSystemMessage(rawMessages, activePersona, activeSoul, enableVoiceNotes)
       : rawMessages;
     const outgoingTools = shouldInject
-      ? mergeSpeakTools(Array.isArray(body.tools) ? body.tools : undefined)
+      ? mergeSpeakTools(Array.isArray(body.tools) ? body.tools : undefined, enableVoiceNotes)
       : body.tools;
 
     const requestedModel = typeof body.model === 'string' && !body.model.startsWith('nb-speak/')

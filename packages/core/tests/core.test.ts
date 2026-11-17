@@ -24,18 +24,24 @@ import { startSpeakBridge } from '../src/bridge.ts';
 const TEST_DIR = path.dirname(fileURLToPath(import.meta.url));
 const BIN_PATH = path.resolve(TEST_DIR, '../bin/nb-speak.mjs');
 
-test('protocol exports valid OpenAI, Anthropic, and Gemini schemas plus cadence schedule', () => {
+test('protocol exports valid OpenAI, Anthropic, and Gemini schemas plus cadence schedule (voice_note disabled by default, opt-in supported)', () => {
   const oa = getOpenAISpeakTools();
   assert.equal(oa.length, 2);
   assert.equal(oa[0]?.function.name, 'send_message');
   assert.equal(oa[1]?.function.name, 'send_artifact');
+  assert.equal((oa[0]?.function.parameters.properties as Record<string, unknown>).voice_note, undefined);
+
+  const oaVoice = getOpenAISpeakTools({ enableVoiceNotes: true });
+  assert.ok((oaVoice[0]?.function.parameters.properties as Record<string, unknown>).voice_note);
 
   const ant = getAnthropicSpeakTools();
   assert.equal(ant[0]?.name, 'send_message');
   assert.ok(ant[0]?.input_schema);
+  assert.equal((ant[0]?.input_schema.properties as Record<string, unknown>).voice_note, undefined);
 
-  const gem = getGeminiSpeakTools();
+  const gem = getGeminiSpeakTools({ enableVoiceNotes: true });
   assert.equal(gem.functionDeclarations.length, 2);
+  assert.ok((gem.functionDeclarations[0]?.parameters.properties as Record<string, unknown>).voice_note);
 
   const sched = computeBubbleSchedule(['Staging deploy is green', 'Error rate held at 0.02%, p99 down to 38ms']);
   assert.equal(sched.length, 2);
@@ -43,9 +49,13 @@ test('protocol exports valid OpenAI, Anthropic, and Gemini schemas plus cadence 
   assert.ok(sched[1]!.delayMs >= 360 && sched[1]!.delayMs <= 2100);
   assert.equal(sched[1]!.cumulativeMs, sched[0]!.delayMs + sched[1]!.delayMs);
 
-  const prompt = buildSpeakSystemPrompt({ persona: 'calm_sre' });
-  assert.ok(prompt.includes('nb-speak · IM Delivery Contract'));
-  assert.ok(prompt.includes('on-call SRE peer'));
+  const defaultPrompt = buildSpeakSystemPrompt({ persona: 'calm_sre' });
+  assert.ok(defaultPrompt.includes('nb-speak · IM Delivery Contract'));
+  assert.ok(defaultPrompt.includes('on-call SRE peer'));
+  assert.ok(!defaultPrompt.includes('voice_note'));
+
+  const voicePrompt = buildSpeakSystemPrompt({ persona: 'calm_sre', enableVoiceNotes: true });
+  assert.ok(voicePrompt.includes('voice_note'));
 });
 
 test('lintTurn achieves deterministic parity across bubbles[], messages[], plain beats, and voice notes', () => {
@@ -217,6 +227,7 @@ test('HTTP/SSE bridge injects tools + persona, serves /v1/speak/lint & /v1/speak
     const health = (await healthRes.json()) as Record<string, unknown>;
     assert.equal(health.status, 'ok');
     assert.equal(health.version, NB_SPEAK_VERSION);
+    assert.equal(health.voiceNotesEnabled, false);
 
     const lintRes = await fetch(`${bridge.baseUrl}/v1/speak/lint`, {
       method: 'POST',
@@ -240,11 +251,41 @@ test('HTTP/SSE bridge injects tools + persona, serves /v1/speak/lint & /v1/speak
     });
     const sseText = await chatRes.text();
     assert.ok(Array.isArray(capturedUpstream[0]?.tools));
+    const injectedSendMsg = (capturedUpstream[0]!.tools as Array<Record<string, any>>)[0]!;
+    assert.equal(injectedSendMsg.function.parameters.properties.voice_note, undefined);
+    const injectedSys = (capturedUpstream[0]!.messages as Array<Record<string, any>>)[0]!.content as string;
+    assert.ok(!injectedSys.includes('voice_note'));
     assert.ok(sseText.includes('event: nb.bubble'));
     assert.ok(sseText.includes('Pool looks steady, good to push 100%'));
     assert.ok(sseText.includes('event: nb.lint'));
   } finally {
     await bridge.close();
+  }
+
+  const voiceBridge = await startSpeakBridge({
+    host: '127.0.0.1',
+    port: 0,
+    upstreamBaseUrl: 'http://127.0.0.1:19999/v1',
+    persona: 'calm_sre',
+    enableVoiceNotes: true,
+    fetchImpl: mockFetch,
+  });
+  try {
+    await fetch(`${voiceBridge.v1BaseUrl}/chat/completions`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        model: 'nb-speak/calm-sre',
+        stream: true,
+        messages: [{ role: 'user', content: '25m into canary, push 100%?' }],
+      }),
+    });
+    const optInSendMsg = (capturedUpstream[1]!.tools as Array<Record<string, any>>)[0]!;
+    assert.ok(optInSendMsg.function.parameters.properties.voice_note);
+    const optInSys = (capturedUpstream[1]!.messages as Array<Record<string, any>>)[0]!.content as string;
+    assert.ok(optInSys.includes('voice_note'));
+  } finally {
+    await voiceBridge.close();
   }
 });
 
@@ -254,6 +295,12 @@ test('nb-speak CLI runs --version, tools, and lint cleanly', () => {
 
   const toolsOut = JSON.parse(execFileSync(process.execPath, [BIN_PATH, 'tools', '--provider', 'openai'], { encoding: 'utf8' }));
   assert.equal(toolsOut.length, 2);
+  assert.equal(toolsOut[0].function.parameters.properties.voice_note, undefined);
+
+  const toolsVoiceOut = JSON.parse(
+    execFileSync(process.execPath, [BIN_PATH, 'tools', '--provider', 'openai', '--voice-notes'], { encoding: 'utf8' }),
+  );
+  assert.ok(toolsVoiceOut[0].function.parameters.properties.voice_note);
 
   const lintOut = JSON.parse(
     execFileSync(process.execPath, [BIN_PATH, 'lint', '--json'], {

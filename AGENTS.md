@@ -1,6 +1,6 @@
 # AGENTS.md — nb-speak Engineering Guide
 
-`NB-Corp/nb-speak` is the universal structured IM bubble & artifact protocol, OpenAI/SSE bridge, DeepSeek Harness (`DSH`) plugin, tactile paper-ink playground, and `chat-human` Agent Skill in the `NB-Corp` ecosystem (`nb-search` discovers, `nb-extract` reads, `nb-hub` signals, `nb-im` routes, `nb-speak` speaks).
+`NB-Corp/nb-speak` is the universal structured IM bubble & artifact protocol, OpenAI/SSE bridge, DeepSeek Harness (`DSH`) plugin, tactile paper-ink playground, and `chat-human` Agent Skill in the `NB-Corp` ecosystem (`nb-search` discovers, `nb-extract` reads, `nb-im` routes, `nb-speak` speaks).
 
 ## Architecture & Module Ownership
 

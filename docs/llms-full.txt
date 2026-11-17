@@ -17,10 +17,10 @@ Every mainstream AI chat UI (`OpenWebUI`, `LobeChat`, generic web wrappers) and 
 ### The `nb-speak` Solution
 `nb-speak` solves AI-to-human conversation at the **protocol, bridge, linter, and skill layers simultaneously**:
 - **Two clean output tools (`send_message` + `send_artifact`)**: Separates short, paced conversational beats (`1–4` bubbles, default `1–2`, mirroring real human mobile IM median `10`-CJK-character / `7`-English-word cadence) from heavy code, SQL, diffs, and Markdown tables (`send_artifact`).
-- **Complementary final-bubble `voice_note`**: Attaches at most 1 voice note strictly on the final bubble (`<50%` directional character-bigram overlap with text bubbles; spoken-word numbers; zero raw URLs or paths).
+- **Optional complementary final-bubble `voice_note` (off by default)**: `enableVoiceNotes` defaults to `false` across both `@nb-corp/nb-speak` and `@nb-corp/nb-speak-dsh` (pure text bubbles + `send_artifact` cards by default). When opted in via `--voice-notes` or `NB_SPEAK_VOICE_NOTES=true`, attaches at most 1 voice note strictly on the final bubble (`<50%` directional character-bigram overlap with text bubbles; spoken-word numbers; zero raw URLs or paths).
 - **Plain-Reply Fallback & Sidecar Normalization**: Automatically extracts fenced code blocks and Markdown pipe tables out of raw `assistant.content` streams when an unprompted or plain-reply model does not invoke tool calls, or routes drafts through an optional Split-Phase / 4B voice-translator endpoint.
 - **Deterministic TS + Python `bubble_lint` Gate**: Zero-dependency static analyzer achieving **`97.2%–100%` zero-slop pass rate** across DeepSeek (`deepseek-chat`) and GPT evaluations by catching Markdown leaks, over-budget walls, trailing periods on short beats or copyable codes, RPG brackets, concierge clichés, and TTS overlap deterministically.
-- **Collision-Free DSH Plugin (`@nb-corp/nb-speak-dsh`)**: In default **`native` mode**, registers first-class `send_bubble` (`exec.concludeTurn()`) + `send_artifact` DSH tools and WebUI bubble/artifact/`<audio>` voice-note components (with optional ElevenLabs `eleven_v4` synthesis via `ELEVENLABS_API_KEY` or `NB_SPEAK_TTS_BRIDGE`, stripping audio DataURIs from LLM `render()` context while streaming to WebUI `presentationMeta`, and falling back seamlessly to Web Speech when unconfigured), leaving DSH's subagent `send_message` untouched; also retains **Mode A (`skill`)** and **Mode B (`voice-model`)** bridges with transparent `send_message <-> agent_send_message` remapping.
+- **Collision-Free DSH Plugin (`@nb-corp/nb-speak-dsh`)**: In default **`native` mode**, registers first-class `send_bubble` (`exec.concludeTurn()`) + `send_artifact` DSH tools and WebUI bubble/artifact/optional `<audio>` voice-note components (provider-agnostic `src/tts.ts` supporting OpenAI-compatible `/v1/audio/speech` via `NB_SPEAK_TTS_BASE_URL`, local JSON `NB_SPEAK_TTS_BRIDGE`, cloud TTS providers, or zero-key Web Speech fallback when `enableVoiceNotes` is enabled, stripping audio DataURIs from LLM `render()` context while streaming to WebUI `presentationMeta`), leaving DSH's subagent `send_message` untouched; also retains **Mode A (`skill`)** and **Mode B (`voice-model`)** bridges with transparent `send_message <-> agent_send_message` remapping.
 
 ---
 
@@ -160,11 +160,11 @@ Standalone repository: `https://github.com/NB-Corp/nb-speak-dsh` · Live showcas
 # Preview changes safely without modifying files
 npx --yes github:NB-Corp/nb-speak-dsh --dry-run --profile web
 
-# Persist ~/.dsh/plugins/nb-speak-dsh & apply Native Mode (send_bubble + send_artifact + turnTail WebUI)
+# Persist ~/.dsh/plugins/nb-speak-dsh & apply Native Mode (pure text bubbles + artifact cards by default)
 npx --yes github:NB-Corp/nb-speak-dsh --apply --profile web
 
-# Optional: launch DSH with ELEVENLABS_API_KEY for real eleven_v4 <audio> voice notes
-ELEVENLABS_API_KEY="xi-..." dsh web
+# Optional: opt in to voice-note capsules via OpenAI-compatible /v1/audio/speech or local bridge
+NB_SPEAK_VOICE_NOTES=true NB_SPEAK_TTS_BASE_URL="http://127.0.0.1:8000/v1" dsh web
 
 # Byte-for-byte reversible uninstall (never touches .credentials.yaml)
 npx --yes github:NB-Corp/nb-speak-dsh --uninstall --profile web

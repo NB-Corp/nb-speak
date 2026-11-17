@@ -144,6 +144,21 @@ export const SEND_MESSAGE_JSON_SCHEMA = {
   },
 }         ;
 
+export const SEND_MESSAGE_TEXT_ONLY_JSON_SCHEMA = {
+  type: 'object',
+  additionalProperties: false,
+  required: ['bubbles'],
+  properties: {
+    bubbles: SEND_MESSAGE_JSON_SCHEMA.properties.bubbles,
+    reply_to: SEND_MESSAGE_JSON_SCHEMA.properties.reply_to,
+    end_turn: SEND_MESSAGE_JSON_SCHEMA.properties.end_turn,
+  },
+}         ;
+
+export function getSendMessageJsonSchema(enableVoiceNotes = false)                          {
+  return (enableVoiceNotes ? SEND_MESSAGE_JSON_SCHEMA : SEND_MESSAGE_TEXT_ONLY_JSON_SCHEMA)                                      ;
+}
+
 export const SEND_ARTIFACT_JSON_SCHEMA = {
   type: 'object',
   additionalProperties: false,
@@ -195,23 +210,28 @@ export const SEND_ARTIFACT_JSON_SCHEMA = {
 export const SEND_MESSAGE_DESCRIPTION =
   'Deliver 1-4 paced, thumb-typed IM chat bubbles to the human user, with an optional complementary voice note on the final bubble. Use this instead of raw Markdown paragraphs.';
 
+export const SEND_MESSAGE_TEXT_ONLY_DESCRIPTION =
+  'Deliver 1-4 paced, thumb-typed IM chat bubbles to the human user. Use this instead of raw Markdown paragraphs.';
+
 export const SEND_ARTIFACT_DESCRIPTION =
   'Deliver multi-line code, SQL queries, unified diffs, or Markdown comparison tables as a clean slide-out artifact card outside chat bubbles.';
 
 export function getOpenAISpeakTools(options    
                                      
+                                      
                                     
                                      
  )                         {
   const msgName = options?.sendMessageName ?? 'send_message';
   const artName = options?.sendArtifactName ?? 'send_artifact';
+  const enableVoiceNotes = options?.enableVoiceNotes ?? false;
   const tools                         = [
     {
       type: 'function',
       function: {
         name: msgName,
-        description: SEND_MESSAGE_DESCRIPTION,
-        parameters: SEND_MESSAGE_JSON_SCHEMA                                      ,
+        description: enableVoiceNotes ? SEND_MESSAGE_DESCRIPTION : SEND_MESSAGE_TEXT_ONLY_DESCRIPTION,
+        parameters: getSendMessageJsonSchema(enableVoiceNotes),
       },
     },
   ];
@@ -230,6 +250,7 @@ export function getOpenAISpeakTools(options
 
 export function getAnthropicSpeakTools(options    
                                      
+                                      
  )                            {
   return getOpenAISpeakTools(options).map((t) => ({
     name: t.function.name,
@@ -240,6 +261,7 @@ export function getAnthropicSpeakTools(options
 
 export function getGeminiSpeakTools(options    
                                      
+                                      
  )                                                                 {
   return {
     functionDeclarations: getOpenAISpeakTools(options).map((t) => ({
@@ -302,6 +324,7 @@ export function computeBubbleSchedule(
                                            
                                      
                                
+                                      
                                     
                                     
                                     
@@ -314,10 +337,14 @@ export function buildSpeakSystemPrompt(options                           = {})  
   const presetKey = options.persona && options.persona !== 'custom' ? options.persona : 'neutral_peer';
   const preset = PERSONA_PRESETS[presetKey] ?? PERSONA_PRESETS.neutral_peer;
   const personaGuidance = options.customSoul?.trim() ? options.customSoul.trim() : preset.instructions;
-  const voiceLine =
-    options.allowVoiceNote === false
-      ? '- Do not attach `voice_note` on this channel.'
-      : '- Optional `voice_note` attaches ONLY to the final bubble (4-10s). Never read the text bubble aloud; put numbers/IDs/URLs in text and use `voice_note.text` for a spoken aside with numbers spelled as words.';
+  const voiceEnabled = options.enableVoiceNotes ?? options.allowVoiceNote ?? false;
+  const voiceLines = voiceEnabled
+    ? [
+        '- Optional `voice_note` attaches ONLY to the final bubble (4-10s). Never read the text bubble aloud; put numbers/IDs/URLs in text and use `voice_note.text` for a spoken aside with numbers spelled as words.',
+      ]
+    : options.allowVoiceNote === false
+      ? ['- Do not attach `voice_note` on this channel.']
+      : [];
   const artifactLine =
     options.allowArtifacts === false
       ? '- Keep answers concise without code blocks or tables inside bubbles.'
@@ -330,7 +357,7 @@ export function buildSpeakSystemPrompt(options                           = {})  
     '- Omit trailing periods (`。` / `.`) on short single-clause bubbles and never glue a period after copyable codes or IDs.',
     '- Ban RPG stage brackets (`*sighs*`, `（叹气）`), subordinate concierge clichés (`向你汇报`, `for your review`, `let me know if you need anything`), and unrequested risk lectures.',
     artifactLine,
-    voiceLine,
+    ...voiceLines,
     '',
     '## Active Persona Layer',
     personaGuidance,

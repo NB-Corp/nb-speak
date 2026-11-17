@@ -1,4 +1,4 @@
-// Bilingual split-stage scenarios backed by live DeepSeek Harness (:19081 vs :19082) runs & ElevenLabs eleven_v4 voice notes
+// Bilingual split-stage scenarios backed by live DeepSeek Harness (:19081 vs :19082) runs & AI-synthesized demo voice notes
 export const SCENARIOS = {
   en: [
     {
@@ -30,13 +30,13 @@ Also note that taste buds dull when you are overtired, so eat something warm fir
       },
       voiceAudio: {
         file: 'casual-en.mp3',
-        voice: 'Jessica · eleven_v4',
+        voice: 'Warm · AI Voice',
         durationSec: 5.76,
       },
       dshCapture: {
         file: 'dsh-compare-casual.png',
         title: 'Session 5 · Casual Friday Convenience Store Chat (:19081 vs :19082)',
-        caption: 'Left (:19081): 4-bullet meal matrix & lecture · Right (:19082): 3 relaxed friend beats + 4s ElevenLabs warm voice note (zero code cards)',
+        caption: 'Left (:19081): 4-bullet meal matrix & lecture · Right (:19082): 3 relaxed friend beats + optional 4s warm voice note (zero code cards)',
       },
       artifacts: [],
     },
@@ -75,7 +75,7 @@ Hope this helps! Please run \`CREATE INDEX CONCURRENTLY\` and let me know if you
       },
       voiceAudio: {
         file: 'sql-en.mp3',
-        voice: 'Sarah · eleven_v4',
+        voice: 'Calm · AI Voice',
         durationSec: 7.6,
       },
       dshCapture: {
@@ -150,7 +150,7 @@ Let me know if you need anything else!`,
       },
       voiceAudio: {
         file: 'kanban-en.mp3',
-        voice: 'Sarah · eleven_v4',
+        voice: 'Clear · AI Voice',
         durationSec: 6.96,
       },
       dshCapture: {
@@ -223,7 +223,7 @@ Hope this helps! Remember to buy an umbrella and get some rest.`,
       },
       voiceAudio: {
         file: 'persona-en.mp3',
-        voice: 'Jessica · eleven_v4',
+        voice: 'Dry · AI Voice',
         durationSec: 7.28,
       },
       dshCapture: {
@@ -323,7 +323,7 @@ Let me know if you need anything else or want me to draft the rollout checklist 
       },
       voiceAudio: {
         file: 'sre-en.mp3',
-        voice: 'Sarah · eleven_v4',
+        voice: 'Calm · AI Voice',
         durationSec: 6.03,
       },
       artifacts: [
@@ -367,13 +367,13 @@ Let me know if you need anything else or want me to draft the rollout checklist 
       },
       voiceAudio: {
         file: 'casual-zh.mp3',
-        voice: 'Jessica · eleven_v4',
+        voice: '温和 · 示例语音',
         durationSec: 4.56,
       },
       dshCapture: {
         file: 'dsh-compare-casual.png',
         title: '实测会话 5 · 周五下班日常闲聊 (:19081 vs :19082)',
-        caption: '左 (:19081 原生)：4 项营养清单 + 味觉科普长文 · 右 (:19082 nb-speak)：3 条松弛朋友短气泡 + 4 秒 ElevenLabs 贴麦语音（零代码卡）',
+        caption: '左 (:19081 原生)：4 项营养清单 + 味觉科普长文 · 右 (:19082 nb-speak)：3 条松弛朋友短气泡 + 可选 4 秒贴麦语音（零代码卡）',
       },
       artifacts: [],
     },
@@ -410,7 +410,7 @@ ORDER BY created_at DESC LIMIT 20 OFFSET 200000;
       },
       voiceAudio: {
         file: 'sql-zh.mp3',
-        voice: 'Julia · eleven_v4',
+        voice: '沉稳 · 示例语音',
         durationSec: 8.0,
       },
       dshCapture: {
@@ -484,7 +484,7 @@ SELECT o.id, o.tenant_id, o.total_cents, o.status, o.created_at
       },
       voiceAudio: {
         file: 'kanban-zh.mp3',
-        voice: 'ZiYue · eleven_v4',
+        voice: '轻快 · 示例语音',
         durationSec: 7.04,
       },
       dshCapture: {
@@ -554,7 +554,7 @@ SELECT o.id, o.tenant_id, o.total_cents, o.status, o.created_at
       },
       voiceAudio: {
         file: 'persona-zh.mp3',
-        voice: 'Jessica · eleven_v4',
+        voice: '克制 · 示例语音',
         durationSec: 5.6,
       },
       dshCapture: {
@@ -653,7 +653,7 @@ class TTLLRUCache:
       },
       voiceAudio: {
         file: 'sre-zh.mp3',
-        voice: 'Julia · eleven_v4',
+        voice: '沉稳 · 示例语音',
         durationSec: 5.6,
       },
       artifacts: [

@@ -5,30 +5,30 @@
   <img src="docs/assets/banner-zh-light.svg" alt="nb-speak — 让 AI Agent 真正说人话" width="1200">
 </picture>
 
-**通用 `send_message` + `send_artifact` IM 短气泡协议、DeepSeek Harness (`DSH`) 原生真气泡插件、零依赖 OpenAI/SSE 桥接网关、ElevenLabs `eleven_v4` 贴麦语音与 `chat-human` Agent Skill。**
+**通用 `send_message` + `send_artifact` IM 短气泡协议、DeepSeek Harness (`DSH`) 原生真气泡插件、零依赖 OpenAI/SSE 桥接网关、`chat-human` Agent Skill 与可选语音胶囊（默认关闭：`enableVoiceNotes: false`）。**
 
 [![CI](https://img.shields.io/github/actions/workflow/status/NB-Corp/nb-speak/ci.yml?branch=main&style=flat-square&color=2d4b35)](https://github.com/NB-Corp/nb-speak/actions/workflows/ci.yml)
 [![Node.js](https://img.shields.io/badge/Node.js-22.19%2B-2d4b35?style=flat-square)](https://nodejs.org/)
 [![Python](https://img.shields.io/badge/Python-3.10%2B-2d4b35?style=flat-square)](https://www.python.org/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-2d4b35?style=flat-square)](LICENSE)
-[![Playground](https://img.shields.io/badge/playground-在线试玩%20%2B%20ElevenLabs%20真声-2d4b35?style=flat-square)](https://nb-corp.github.io/nb-speak/zh/)
+[![Playground](https://img.shields.io/badge/playground-在线交互试玩-2d4b35?style=flat-square)](https://nb-corp.github.io/nb-speak/zh/)
 
-[**在线交互试玩 & 点播真声**](https://nb-corp.github.io/nb-speak/zh/) · [30 秒上手](#30-秒极速上手) · [四大实机对决](#同一模型两种体感四大-dsh-实机同题对决) · [协议与流式契约](#协议载荷与-sse-流式契约) · [DSH 插件指南](#deepseek-harness-插件指南-nb-corpnb-speak-dsh) · [bubble_lint 规范](#确定性门禁-bubble_lint-8-大规则规范) · [nb-im](https://github.com/NB-Corp/nb-im)
+[**在线交互试玩 & DSH 实拍**](https://nb-corp.github.io/nb-speak/zh/) · [30 秒上手](#30-秒极速上手) · [四大实机对决](#同一模型两种体感四大-dsh-实机同题对决) · [协议与流式契约](#协议载荷与-sse-流式契约) · [DSH 插件指南](#deepseek-harness-插件指南-nb-corpnb-speak-dsh) · [bubble_lint 规范](#确定性门禁-bubble_lint-8-大规则规范) · [nb-im](https://github.com/NB-Corp/nb-im)
 
 [English](README.md) · **简体中文**
 
 </div>
 
-主流 AI 对话面板与 Agent 框架至今仍把每次回复当成 300 字 Markdown 论文倾倒进 `assistant.content`——把长 SQL 与宽表格硬塞进狭窄聊天气泡、在周五下班闲聊时甩出四点营养搭配讲义、甚至在语音条里把文字气泡一字不差复读一遍。在 **NB-Corp** 工具矩阵中（[nb-search](https://github.com/NB-Corp/nb-search) 发现、[nb-extract](https://github.com/NB-Corp/nb-extract) 精读、[nb-hub](https://github.com/NB-Corp/nb-hub) 唤醒、[nb-im](https://github.com/NB-Corp/nb-im) 路由），**`nb-speak`** 从协议、插件与确定性门禁三层赋予任意大模型真人手机聊天的呼吸感：
+主流 AI 对话面板与 Agent 框架至今仍把每次回复当成 300 字 Markdown 论文倾倒进 `assistant.content`——把长 SQL 与宽表格硬塞进狭窄聊天气泡、在周五下班闲聊时甩出四点营养搭配讲义、甚至在开启语音时把文字气泡一字不差复读一遍。在 **NB-Corp** 工具矩阵中（[nb-search](https://github.com/NB-Corp/nb-search) 发现、[nb-extract](https://github.com/NB-Corp/nb-extract) 精读、[nb-im](https://github.com/NB-Corp/nb-im) 路由），**`nb-speak`** 从协议、插件与确定性门禁三层赋予任意大模型真人手机聊天的呼吸感：
 
 <p align="center">
   <a href="https://nb-corp.github.io/nb-speak/zh/">
-    <img src="docs/assets/dsh-hero-showcase-zh.png" alt="DeepSeek Harness (:19081 原生 vs :19082 nb-speak) 实机同屏对比：周五下班便利店闲聊与 420 万行慢 SQL 救火，原生 IM 短气泡 + 可点播 ElevenLabs v4 贴麦真声 + 一键复制 SQL 卡片" width="1160">
+    <img src="docs/assets/dsh-hero-showcase-zh.png" alt="DeepSeek Harness (:19081 原生 vs :19082 nb-speak) 实机同屏对比：周五下班便利店闲聊与 420 万行慢 SQL 救火，原生 IM 短气泡 + 一键复制 SQL 卡片 + 可选语音胶囊" width="1160">
   </a>
 </p>
 
 <p align="center">
-  <strong><a href="https://nb-corp.github.io/nb-speak/zh/">点此进入在线交互舞台：切换 5 大真实场景、点播 ElevenLabs <code>eleven_v4</code> 真声并放大检视 DSH 实拍图 → nb-corp.github.io/nb-speak/zh/</a></strong>
+  <strong><a href="https://nb-corp.github.io/nb-speak/zh/">点此进入在线交互舞台：切换 5 大真实场景、试听可选语音条并放大检视 DSH 实拍图 → nb-corp.github.io/nb-speak/zh/</a></strong>
 </p>
 
 ## 30 秒极速上手
@@ -52,9 +52,9 @@ npx skills add NB-Corp/chat-human
 npx --yes github:NB-Corp/nb-speak-dsh --dry-run --profile web
 npx --yes github:NB-Corp/nb-speak-dsh --apply --profile web
 
-# 2. 可选：启动 dsh web 时传入 ELEVENLABS_API_KEY，自动合成 eleven_v4 真声供 <audio> 点播
-#    （未配置密钥时零报错无缝回退浏览器 Web Speech 朗读）
-ELEVENLABS_API_KEY="xi-..." dsh web
+# 2. 可选启用语音胶囊（默认关闭：仅输出纯文本短气泡与制品卡片）
+npx --yes github:NB-Corp/nb-speak-dsh --apply --profile web --voice-notes
+NB_SPEAK_VOICE_NOTES=true NB_SPEAK_TTS_BASE_URL="http://127.0.0.1:8000/v1" dsh web
 
 # 3. 字节级无损还原卸载（全程绝不读取或修改 .credentials.yaml）
 npx --yes github:NB-Corp/nb-speak-dsh --uninstall --profile web
@@ -81,14 +81,14 @@ printf 'Bubble 1: 慢查询定位到了。\n\n```sql\n-- fix.sql\nSELECT 1;\n```
 
 ## 同一模型、两种体感：四大 DSH 实机同题对决
 
-以下四组对比均在隔离双实例 DeepSeek Harness 上由同一模型 **`cmd/deepseek-v4.1-flash`** 真实跑出（左 `:19081` 原生模式 vs 右 `:19082` `@nb-corp/nb-speak-dsh` 原生插件 + ElevenLabs `eleven_v4` 真声，零 Mock）：
+以下四组对比均在隔离双实例 DeepSeek Harness 上由同一模型 **`cmd/deepseek-v4.1-flash`** 真实跑出（左 `:19081` 原生模式 vs 右 `:19082` `@nb-corp/nb-speak-dsh` 原生插件，示例对话另演示了显式开启可选语音胶囊后的效果，零 Mock）：
 
 | 真实实测场景 | 原生 DSH (`:19081` · 单块 `assistant.content`) | 挂载 `nb-speak` (`:19082` · `send_bubble` + `send_artifact`) |
 | --- | --- | --- |
-| **1. 周五下班日常闲聊**<br>*“站在便利店冰柜前纠结吃啥，脑子已经转不动了”* | 甩出「一条铁律」+ **4 项加粗营养搭配清单**（关东煮/便当/三明治/泡面）+ 味觉钝化生理科普 + 管家式追问。 | **3 条松弛朋友短气泡**（`别纠结了，直接拿关东煮加一个饭团` / `热的、有咸味、碳水管饱，脑子不用参与` / `柜里没有的话报一下有啥，我秒选`）+ **4.5 秒 ElevenLabs `Jessica` 贴麦真声**（*“先抓热乎的。吃完这顿，周末才算真的开始。”*），**零代码卡，彻底去 AI 味**。 |
-| **2. 420 万行慢 SQL 救火**<br>*“orders 倒序分页飙到 4.2 秒，白天主库不能锁表，怎么救”* | 多级标题分段 + 编号排查清单 + 塞在聊天气泡里的长段 `EXPLAIN` SQL 代码围栏。 | **3 条平辈排障结论**（`先别加机器，八成是深 OFFSET 加缺复合索引` / `白天直接跑 CONCURRENTLY 建索引，读写不阻塞` / `深翻页换游标，顺手把 count(*) 停掉`）+ **8 秒 `Julia` 沉稳语音叮嘱** + 可展开/一键复制的 **`orders-pagination-fix.sql`** 卡片。 |
-| **3. 多文件工单看板修 Bug**<br>*“修双计时器泄漏 + 顶部实时 `MM:SS` + 松针绿呼吸点 + 筛选胶囊”* | **13/13 测试通过**，但改完 9 个文件后倾倒整屏逐文件改动邀功报告墙。 | **17/17 测试全绿（工程能力零折损）**，仅发 **4 条干脆气泡** + 贴麦语音补充秒表不中断细节 + **`board.css`** 样式卡片。 |
-| **4. 傲娇女友并发死锁救援**<br>*相同女友 `AGENTS.md`：第 1 轮暴雨忘带伞 -> 第 2 轮修死锁 Python LRU* | 第 1 轮勉强维持口吻，**第 2 轮一碰并发代码瞬间破功**，退化为 10 段互斥锁原理讲义。 | **全程 100% 稳住微信短句人设与硬核交付**：嘴硬关心短句（`借伞挺大方，写代码倒是先把自己锁死了`）+ `Jessica` 冷幽默语音条 + 32 线程压测通过的 **`ttl_lru.py`** 卡片。 |
+| **1. 周五下班日常闲聊**<br>*“站在便利店冰柜前纠结吃啥，脑子已经转不动了”* | 甩出「一条铁律」+ **4 项加粗营养搭配清单**（关东煮/便当/三明治/泡面）+ 味觉钝化生理科普 + 管家式追问。 | **3 条松弛朋友短气泡**（`别纠结了，直接拿关东煮加一个饭团` / `热的、有咸味、碳水管饱，脑子不用参与` / `柜里没有的话报一下有啥，我秒选`）+ **可选 4.5 秒贴麦语音条**（*“先抓热乎的。吃完这顿，周末才算真的开始。”*），**零代码卡，彻底去 AI 味**。 |
+| **2. 420 万行慢 SQL 救火**<br>*“orders 倒序分页飙到 4.2 秒，白天主库不能锁表，怎么救”* | 多级标题分段 + 编号排查清单 + 塞在聊天气泡里的长段 `EXPLAIN` SQL 代码围栏。 | **3 条平辈排障结论**（`先别加机器，八成是深 OFFSET 加缺复合索引` / `白天直接跑 CONCURRENTLY 建索引，读写不阻塞` / `深翻页换游标，顺手把 count(*) 停掉`）+ **可选 8 秒沉稳语音叮嘱** + 可展开/一键复制的 **`orders-pagination-fix.sql`** 卡片。 |
+| **3. 多文件工单看板修 Bug**<br>*“修双计时器泄漏 + 顶部实时 `MM:SS` + 松针绿呼吸点 + 筛选胶囊”* | **13/13 测试通过**，但改完 9 个文件后倾倒整屏逐文件改动邀功报告墙。 | **17/17 测试全绿（工程能力零折损）**，仅发 **4 条干脆气泡** + 可选贴麦语音补充秒表不中断细节 + **`board.css`** 样式卡片。 |
+| **4. 傲娇女友并发死锁救援**<br>*相同女友 `AGENTS.md`：第 1 轮暴雨忘带伞 -> 第 2 轮修死锁 Python LRU* | 第 1 轮勉强维持口吻，**第 2 轮一碰并发代码瞬间破功**，退化为 10 段互斥锁原理讲义。 | **全程 100% 稳住微信短句人设与硬核交付**：嘴硬关心短句（`借伞挺大方，写代码倒是先把自己锁死了`）+ 可选冷幽默语音条 + 32 线程压测通过的 **`ttl_lru.py`** 卡片。 |
 
 <details>
 <summary><strong>点击展开：多文件看板挑战 (17/17 全绿) 与女友并发死锁救援完整同屏实拍图</strong></summary>
@@ -191,13 +191,19 @@ data: [DONE]
 | --- | --- | --- | --- |
 | **适用模型** | 直连 DSH 已配置的任意模型渠道（`deepseek`、`cmd/deepseek-v4.1-flash`、OpenAI、Claude、Gemini） | 外部或代理转发的 OpenAI 兼容端点 | 专用分阶段模型或 `<0.8s` 4B 语音翻译侧车（`http://127.0.0.1:18088/v1`） |
 | **前端与工具行为** | 注册原生 `send_bubble`（`exec.concludeTurn()` 单步结轮）与 `send_artifact` 工具；`dist/client.js` 在折叠摘要外直接渲染圆角 IM 气泡、22 柱可播放 `<audio>`/Web Speech 语音胶囊与一键复制代码/SQL/Diff/表格卡片 | 在 HTTP 桥接层注入 `send_message` + `send_artifact` 并解包为文本段 | 将 5 轴连续权重编码为 `nb-speak-voice-v1\|w0,w1,w2,w3,w4`，通过 `BubbleStreamFormatter` 扩展口语换行 |
-| **推荐场景** | 零代理中转、原生 DSH 气泡与 ElevenLabs `eleven_v4` 真声交互、保留 100% 真实轨迹与缓存统计 | 非 WebUI 的通用 OpenAI 客户端接入 | 高频实时陪伴或需要连续 LoRA/Steering 混音控制的生产网关 |
+| **推荐场景** | 零代理中转、原生 DSH 气泡与代码卡（支持按需开启可选语音胶囊）、保留 100% 真实轨迹与缓存统计 | 非 WebUI 的通用 OpenAI 客户端接入 | 高频实时陪伴或需要连续 LoRA/Steering 混音控制的生产网关 |
 
-### 2. 可选 ElevenLabs `eleven_v4` 真声合成与无密钥无缝回退
+### 2. 跨引擎可选语音胶囊（默认关闭）
 
-在默认的 `native` 模式下，`send_bubble` 原生支持可选的高保真语音合成且绝不污染大模型上下文 Token：
-- 当检测到 `ELEVENLABS_API_KEY`（或通过 `NB_SPEAK_TTS_BRIDGE` 挂载本地 JSON 语音桥接器）时，`send_bubble` 自动调用 ElevenLabs `eleven_v4` 合成贴麦语音（中文场景对 `Jessica`/`Sarah` 自动注入 `language_code: "zh"` 与静默 `[Standard Mandarin accent]` 锚点防止粤语漂移），在给模型的 `render()` 返回值中剥离音频数据避免消耗 Token，并通过 `presentationMeta` 将音频流直传前端 `VoiceNotePill` `<audio>` 原生播放；
-- 当外部开源用户未配置任何语音密钥时，`VoiceNotePill` 自动无感回退至浏览器 Web Speech 朗读与 22 柱波形动画，零外部硬依赖、零报错泄漏。
+`@nb-corp/nb-speak`（`nb-speak serve`，传入 `--voice-notes` 或 `NB_SPEAK_VOICE_NOTES=true` 开启）与 `@nb-corp/nb-speak-dsh` 均默认将 **`enableVoiceNotes` 设为 `false`**——默认仅输出纯文本短气泡与 `send_artifact` 卡片，不向大模型注入 `voice_note` 参数也不调用任何 TTS。显式开启后，`src/tts.ts` 支持多类语音后端且绝不污染大模型上下文 Token：
+
+| 语音后端选项 | 启用方式 | 上下文 Token 开销 |
+| --- | --- | --- |
+| **OpenAI 兼容 `/v1/audio/speech`**（OpenAI、Qwen TTS、Fish、Kokoro、vLLM） | `NB_SPEAK_VOICE_NOTES=true` + `NB_SPEAK_TTS_BASE_URL`（可选配 `NB_SPEAK_TTS_API_KEY`、`NB_SPEAK_TTS_MODEL`、`NB_SPEAK_TTS_VOICE`） | **`0` 额外 Token** |
+| **本地 JSON 语音桥接脚本** | `NB_SPEAK_VOICE_NOTES=true` + `NB_SPEAK_TTS_BRIDGE` | **`0` 额外 Token** |
+| **云端 TTS / 浏览器 Web Speech 回退** | `NB_SPEAK_VOICE_NOTES=true` 配可选云端 TTS（如 `NB_SPEAK_TTS_PROVIDER=elevenlabs` + `ELEVENLABS_API_KEY` 等），未配密钥时无感回退浏览器 **Web Speech API** | **`0` 额外 Token** |
+
+所有语音合成都会在给模型的 `render()` 返回值中剥离 `audioSrc` DataURI，仅通过 `presentationMeta` 将音频直传前端 `VoiceNotePill` `<audio>` 播放。
 
 ### 3. 子代理零冲突与五轴连续风格预算
 
@@ -291,12 +297,12 @@ Layer 1 负责全场景通用的手机发消息物理直觉，Layer 2 按严格�
 nb-speak/
 ├── packages/
 │   ├── core/                # @nb-corp/nb-speak：双工具协议、流解析器、TS bubble_lint、HTTP/SSE 桥接与 CLI
-│   └── dsh-plugin/          # @nb-corp/nb-speak-dsh：DSH 原生双工具、ElevenLabs/WebSpeech 气泡前端与安装器
+│   └── dsh-plugin/          # @nb-corp/nb-speak-dsh：DSH 原生双工具、跨引擎可选语音胶囊与安装器
 ├── skills/
 │   └── chat-human/          # 通用 chat-human 技能 (v0.2.0) + bubble_lint.py + proactive_gate.py
 ├── apps/
 │   └── web/                 # 纸墨触感 IM 同屏对比工作台源码（同步构建至 docs/）
-├── docs/                    # GitHub Pages 双语工作台、ElevenLabs v4 真声样本与 DSH 实机实拍资产
+├── docs/                    # GitHub Pages 双语工作台、静态演示音频与 DSH 实机实拍资产
 ├── llms.txt                 # 面向生成式搜索引擎的精简索引 (llmstxt.org)
 └── llms-full.txt            # 完整协议 Schema、定量指标、对比矩阵与高频工程问答
 ```
@@ -311,4 +317,4 @@ npm test
 
 [MIT](LICENSE) © 2026 NB-Corp —— 适用于本仓库全部源码、协议 Schema、CLI 工具、DSH 插件、`chat-human` 技能与文档。
 
-**示例语音资产与 AI 标识说明**：[`apps/web/src/assets/audio/`](apps/web/src/assets/audio/NOTICE.txt)（同步至 `docs/assets/audio/`）中的静态 `.mp3` 示例语音条（中英文全量）均由 ElevenLabs (`eleven_v4`) 基于官方预置合成声线（`Jessica`、`Sarah`、`Julia`、`ZiYue`、`ShanShan`）生成并校准至 `-16 LUFS`（未克隆任何自然人声纹），仅用于在线体验页演示 `nb-speak` 互补语音胶囊；依据上游服务条款，相关音频不可提取用于训练竞品语音合成模型，亦不得冒充真人录音传播。
+**示例语音资产与 AI 标识说明**：[`apps/web/src/assets/audio/`](apps/web/src/assets/audio/NOTICE.txt)（同步至 `docs/assets/audio/`）中的静态 `.mp3` 示例语音条（中英文全量）均为 AI 合成语音（未克隆任何自然人声纹），仅用于在线体验页演示可选的 `nb-speak` 互补语音胶囊；上游语音模型署名及使用条款见 [AI Demo Audio Notice](apps/web/src/assets/audio/NOTICE.txt)。

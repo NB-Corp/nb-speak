@@ -42,6 +42,7 @@ Options (serve):
   --api-key <key>                Upstream API key (or NB_SPEAK_API_KEY / OPENAI_API_KEY)
   --model <id>                   Default upstream model (default: deepseek-chat)
   --persona <id>                 neutral_peer | sharp_lead | warm_companion | calm_sre
+  --voice-notes                  Enable optional voice_note in injected tool schemas & prompt (or NB_SPEAK_VOICE_NOTES=true)
   --voice-sidecar-url <url>      Optional Split-Phase / 4B voice translator endpoint
 
 Options (lint / parse):
@@ -52,8 +53,15 @@ Options (lint / parse):
 
 Options (tools):
   --provider <openai|anthropic|gemini>  Schema provider format (default: openai)
+  --voice-notes                         Include optional voice_note field in printed schema & prompt
   --system                              Print the chat-human + nb-speak system layer instead of JSON tools
 `);
+}
+
+function parseBoolEnv(raw                    )          {
+  if (!raw) return false;
+  const cleaned = raw.trim().toLowerCase();
+  return cleaned === '1' || cleaned === 'true' || cleaned === 'yes' || cleaned === 'on';
 }
 
 export async function runCli(argv                   )                  {
@@ -73,21 +81,23 @@ export async function runCli(argv                   )                  {
     let provider = 'openai';
     let persona                  = 'neutral_peer';
     let printSystem = false;
+    let enableVoiceNotes = parseBoolEnv(process.env.NB_SPEAK_VOICE_NOTES);
     for (let i = 0; i < rest.length; i += 1) {
       if (rest[i] === '--provider' && rest[i + 1]) provider = rest[++i] ;
       else if (rest[i] === '--persona' && rest[i + 1]) persona = rest[++i]                   ;
       else if (rest[i] === '--system') printSystem = true;
+      else if (rest[i] === '--voice-notes') enableVoiceNotes = true;
     }
     if (printSystem) {
-      console.log(buildSpeakSystemPrompt({ persona }));
+      console.log(buildSpeakSystemPrompt({ persona, enableVoiceNotes }));
       return 0;
     }
     const payload =
       provider === 'anthropic'
-        ? getAnthropicSpeakTools()
+        ? getAnthropicSpeakTools({ enableVoiceNotes })
         : provider === 'gemini'
-          ? getGeminiSpeakTools()
-          : getOpenAISpeakTools();
+          ? getGeminiSpeakTools({ enableVoiceNotes })
+          : getOpenAISpeakTools({ enableVoiceNotes });
     console.log(JSON.stringify(payload, null, 2));
     return 0;
   }
@@ -161,6 +171,7 @@ export async function runCli(argv                   )                  {
     let defaultModel = process.env.NB_SPEAK_MODEL || 'deepseek-chat';
     let persona                  = (process.env.NB_SPEAK_PERSONA                   ) || 'neutral_peer';
     let voiceSidecarUrl = process.env.NB_SPEAK_SIDECAR_URL || '';
+    let enableVoiceNotes = parseBoolEnv(process.env.NB_SPEAK_VOICE_NOTES);
 
     for (let i = 0; i < rest.length; i += 1) {
       const arg = rest[i];
@@ -171,6 +182,7 @@ export async function runCli(argv                   )                  {
       else if (arg === '--model' && rest[i + 1]) defaultModel = rest[++i] ;
       else if (arg === '--persona' && rest[i + 1]) persona = rest[++i]                   ;
       else if (arg === '--voice-sidecar-url' && rest[i + 1]) voiceSidecarUrl = rest[++i] ;
+      else if (arg === '--voice-notes') enableVoiceNotes = true;
     }
 
     const bridge = await startSpeakBridge({
@@ -180,6 +192,7 @@ export async function runCli(argv                   )                  {
       upstreamApiKey,
       defaultModel,
       persona,
+      enableVoiceNotes,
       voiceSidecarUrl,
     });
     console.log(
@@ -189,6 +202,7 @@ export async function runCli(argv                   )                  {
         baseUrl: bridge.baseUrl,
         v1BaseUrl: bridge.v1BaseUrl,
         persona,
+        voiceNotesEnabled: enableVoiceNotes,
         upstreamConfigured: Boolean(upstreamBaseUrl),
       }),
     );

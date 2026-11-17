@@ -1,20 +1,20 @@
 # nb-speak
 
-> `NB-Corp/nb-speak` is the universal structured `send_message` + `send_artifact` IM bubble protocol, zero-dependency OpenAI/SSE bridge server, DeepSeek Harness (`DSH`) plugin, embeddable tactile paper-ink IM web playground, and `chat-human` Agent Skill (`v0.2.0`) for AI agents. Within the `NB-Corp` ecosystem (`nb-search` discovers, `nb-extract` reads, `nb-hub` signals, `nb-im` routes), `nb-speak` is how AI agents actually speak to humans—replacing 300-word single-blob Markdown walls with 1–4 paced thumb-typed bubbles, slide-out code/SQL/table artifact cards, complementary final-bubble voice notes, and deterministic `bubble_lint` validation (`97.2%–100%` zero-slop pass rate across DeepSeek and GPT).
+> `NB-Corp/nb-speak` is the universal structured `send_message` + `send_artifact` IM bubble protocol, zero-dependency OpenAI/SSE bridge server, DeepSeek Harness (`DSH`) plugin, embeddable tactile paper-ink IM web playground, and `chat-human` Agent Skill (`v0.2.0`) for AI agents. Within the `NB-Corp` ecosystem (`nb-search` discovers, `nb-extract` reads, `nb-im` routes, `nb-speak` speaks), `nb-speak` is how AI agents actually speak to humans—replacing 300-word single-blob Markdown walls with 1–4 paced thumb-typed bubbles, slide-out code/SQL/table artifact cards, optional final-bubble voice notes (disabled by default: `enableVoiceNotes: false`), and deterministic `bubble_lint` validation (`97.2%–100%` zero-slop pass rate across DeepSeek and GPT).
 
 ## Quickstart Surfaces
 
 - `npx skills add NB-Corp/nb-speak` (or `npx skills add NB-Corp/chat-human`) — Install the standalone `chat-human` Agent Skill (`v0.2.0`) into Codex, Claude Code, Kiki, Cursor, or any Agent Skills runtime.
-- `npx --yes github:NB-Corp/nb-speak-dsh --apply --profile web` — Zero-clone installation of the standalone DeepSeek Harness (`DSH`) native bubble plugin (`NB-Corp/nb-speak-dsh`), mounting `send_bubble` (`exec.concludeTurn()`) + `send_artifact` + WebUI `turnTail` bubbles, 22-bar ElevenLabs `eleven_v4` / Web Speech voice pills, and copyable artifact cards.
-- `npx --yes github:NB-Corp/nb-speak serve --port 18090 --upstream-url https://api.deepseek.com/v1` — Start the zero-dependency OpenAI-compatible HTTP/SSE bridge server (`nb-speak-bridge`) in front of DeepSeek, OpenAI, Claude, Gemini, or local `llama-server`.
+- `npx --yes github:NB-Corp/nb-speak-dsh --apply --profile web` — Zero-clone installation of the standalone DeepSeek Harness (`DSH`) native bubble plugin (`NB-Corp/nb-speak-dsh`), mounting `send_bubble` (`exec.concludeTurn()`) + `send_artifact` + WebUI `turnTail` bubbles, copyable artifact cards, and optional 22-bar voice-note pills (disabled by default; enable via `--voice-notes` or `NB_SPEAK_VOICE_NOTES=true`).
+- `npx --yes github:NB-Corp/nb-speak serve --port 18090 --upstream-url https://api.deepseek.com/v1` — Start the zero-dependency OpenAI-compatible HTTP/SSE bridge server (`nb-speak-bridge`) in front of DeepSeek, OpenAI, Claude, Gemini, or local `llama-server` (pass `--voice-notes` to enable optional `voice_note` schema).
 - `@nb-corp/nb-speak` (`packages/core`) — TypeScript/JavaScript SDK exporting `getOpenAISpeakTools()`, `getAnthropicSpeakTools()`, `getGeminiSpeakTools()`, `normalizeTurnOutput()`, `computeBubbleSchedule()`, `lintTurn()`, and `startSpeakBridge()`.
 
 ## Documentation & Canonical Resources
 
 - [Repository & Quickstart (English)](https://github.com/NB-Corp/nb-speak/blob/main/README.md): Complete overview, architecture diagram, Before/After proof, and verified CLI/SDK usage.
 - [中文文档 (README.zh-CN.md)](https://github.com/NB-Corp/nb-speak/blob/main/README.zh-CN.md): 完整中文架构说明、30 秒快速接入指南与对比矩阵。
-- [Live IM Split-Stage Playground (EN)](https://nb-corp.github.io/nb-speak/): Interactive side-by-side comparison across 5 real scenarios (Casual Off-Work Chat, 4.2M-Row SQL Triage, Kanban SLA Bugfix, Persona + Python LRU, SRE Canary) with playable ElevenLabs `eleven_v4` voice notes, collapsible/copyable artifact cards, full-res DSH live capture Lightbox, and live `bubble_lint`.
-- [实时同屏对比工作台 (ZH)](https://nb-corp.github.io/nb-speak/zh/): 中文交互式 5 大实机场景对比、ElevenLabs `eleven_v4` 真声点播、DSH 实拍放大检视与 BYOK / 本地桥接测试台。
+- [Live IM Split-Stage Playground (EN)](https://nb-corp.github.io/nb-speak/): Interactive side-by-side comparison across 5 real scenarios (Casual Off-Work Chat, 4.2M-Row SQL Triage, Kanban SLA Bugfix, Persona + Python LRU, SRE Canary) with optional AI-synthesized voice-note demos, collapsible/copyable artifact cards, full-res DSH live capture Lightbox, and live `bubble_lint`.
+- [实时同屏对比工作台 (ZH)](https://nb-corp.github.io/nb-speak/zh/): 中文交互式 5 大实机场景对比、可选语音条示例点播、DSH 实拍放大检视与 BYOK / 本地桥接测试台。
 - [Full Technical Specification for LLMs (`llms-full.txt`)](https://nb-corp.github.io/nb-speak/llms-full.txt): Complete `send_message` + `send_artifact` JSON schemas, SSE event wire format, `bubble_lint` error codes, quantitative benchmarks, comparison matrix, and developer Q&A.
 - [`chat-human` Skill Definition (`skills/chat-human/SKILL.md`)](https://github.com/NB-Corp/nb-speak/blob/main/skills/chat-human/SKILL.md): Two-layer IM delivery physics (Layer 1 Universal Bubble Mechanics + Layer 2 Pluggable Persona & Mood Physics).
 - [Core SDK (`packages/core/README.md`)](https://github.com/NB-Corp/nb-speak/blob/main/packages/core/README.md): API reference for `@nb-corp/nb-speak`.
@@ -26,4 +26,3 @@
 - [NB-Corp/nb-im](https://github.com/NB-Corp/nb-im): Bidirectional messaging sessions (Telegram, Feishu, Slack, Discord, Matrix, WeChat, OneBot) and durable notification outbox.
 - [NB-Corp/nb-search](https://github.com/NB-Corp/nb-search): Unified web search, URL-to-Markdown extraction, and RRF multi-source fusion for AI agents.
 - [NB-Corp/nb-extract](https://github.com/NB-Corp/nb-extract): Clean web-page and document-to-Markdown Agent Skill.
-- [NB-Corp/nb-hub](https://github.com/NB-Corp/nb-hub): Deterministic zero-LLM signal ledger and wake switchboard for AI agents.

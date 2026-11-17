@@ -5,13 +5,13 @@
   <img src="docs/assets/banner-light.svg" alt="nb-speak — How AI agents actually speak to humans." width="1200">
 </picture>
 
-**Universal `send_message` + `send_artifact` IM bubble protocol, native DeepSeek Harness (`DSH`) WebUI plugin, zero-dependency OpenAI/SSE bridge, ElevenLabs `eleven_v4` voice notes, and `chat-human` Agent Skill.**
+**Universal `send_message` + `send_artifact` IM bubble protocol, native DeepSeek Harness (`DSH`) WebUI plugin, zero-dependency OpenAI/SSE bridge, `chat-human` Agent Skill, and optional provider-agnostic voice notes (off by default).**
 
 [![CI](https://img.shields.io/github/actions/workflow/status/NB-Corp/nb-speak/ci.yml?branch=main&style=flat-square&color=2d4b35)](https://github.com/NB-Corp/nb-speak/actions/workflows/ci.yml)
 [![Node.js](https://img.shields.io/badge/Node.js-22.19%2B-2d4b35?style=flat-square)](https://nodejs.org/)
 [![Python](https://img.shields.io/badge/Python-3.10%2B-2d4b35?style=flat-square)](https://www.python.org/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-2d4b35?style=flat-square)](LICENSE)
-[![Playground](https://img.shields.io/badge/playground-live%20%2B%20ElevenLabs%20v4-2d4b35?style=flat-square)](https://nb-corp.github.io/nb-speak/)
+[![Playground](https://img.shields.io/badge/playground-live%20split--stage-2d4b35?style=flat-square)](https://nb-corp.github.io/nb-speak/)
 
 [**Interactive Stage & Playable Voice Demo**](https://nb-corp.github.io/nb-speak/) · [30s Quick Start](#quick-start) · [4 Live DSH Duels](#same-model-different-delivery-4-live-dsh-duels) · [Protocol & SSE](#wire-protocol--sse-contract) · [DSH Plugin](#deepseek-harness-plugin-nb-corpnb-speak-dsh) · [bubble_lint](#deterministic-bubble_lint-specification) · [llms.txt](llms.txt)
 
@@ -19,16 +19,16 @@
 
 </div>
 
-Most AI chat clients and agent harnesses still dump 250-word Markdown essays into a single `assistant.content` blob—cramming SQL fences and pipe tables inside narrow phone bubbles, lecturing tired humans on casual Friday evenings, and reading text bubbles word-for-word in TTS. Within the **NB-Corp** ecosystem ([nb-search](https://github.com/NB-Corp/nb-search) discovers, [nb-extract](https://github.com/NB-Corp/nb-extract) reads, [nb-hub](https://github.com/NB-Corp/nb-hub) signals, [nb-im](https://github.com/NB-Corp/nb-im) routes), **`nb-speak`** gives any LLM human mobile delivery physics—paced short bubbles, slide-out code/table cards, and complementary mic-side voice notes:
+Most AI chat clients and agent harnesses still dump 250-word Markdown essays into a single `assistant.content` blob—cramming SQL fences and pipe tables inside narrow phone bubbles, lecturing tired humans on casual Friday evenings, and reading text bubbles word-for-word in TTS. Within the **NB-Corp** ecosystem ([nb-search](https://github.com/NB-Corp/nb-search) discovers, [nb-extract](https://github.com/NB-Corp/nb-extract) reads, [nb-im](https://github.com/NB-Corp/nb-im) routes), **`nb-speak`** gives any LLM human mobile delivery physics—paced short bubbles, slide-out code/table cards, and strictly opt-in complementary voice notes:
 
 <p align="center">
   <a href="https://nb-corp.github.io/nb-speak/">
-    <img src="docs/assets/dsh-hero-showcase.png" alt="Live DeepSeek Harness comparison (:19081 Vanilla vs :19082 nb-speak): Casual Friday off-work chat and 4.2M-row production SQL triage with native IM bubbles, playable ElevenLabs v4 voice notes, and copyable SQL cards" width="1160">
+    <img src="docs/assets/dsh-hero-showcase.png" alt="Live DeepSeek Harness comparison (:19081 Vanilla vs :19082 nb-speak): Casual Friday off-work chat and 4.2M-row production SQL triage with native IM bubbles, copyable SQL cards, and optional voice-note pills" width="1160">
   </a>
 </p>
 
 <p align="center">
-  <strong><a href="https://nb-corp.github.io/nb-speak/">Try the Interactive Split-Stage, Play ElevenLabs <code>eleven_v4</code> Voice Notes &amp; Inspect Full-Res DSH Captures → nb-corp.github.io/nb-speak</a></strong>
+  <strong><a href="https://nb-corp.github.io/nb-speak/">Try the Interactive Split-Stage, Inspect Copyable Cards, Play Optional Voice Demos &amp; View Full-Res DSH Captures → nb-corp.github.io/nb-speak</a></strong>
 </p>
 
 ## Quick start
@@ -52,9 +52,12 @@ Published as the standalone zero-clone repository **[`NB-Corp/nb-speak-dsh`](htt
 npx --yes github:NB-Corp/nb-speak-dsh --dry-run --profile web
 npx --yes github:NB-Corp/nb-speak-dsh --apply --profile web
 
-# Optional: set ELEVENLABS_API_KEY when launching dsh web to play real eleven_v4 audio
-# inside VoiceNotePill <audio> (unconfigured setups fall back seamlessly to Web Speech)
-ELEVENLABS_API_KEY="xi-..." dsh web
+# Launch DSH WebUI (default: pure text bubbles + artifact cards, voice notes disabled)
+dsh web
+
+# Optional: opt in to voice_note capsules (--voice-notes or NB_SPEAK_VOICE_NOTES=true)
+# Works with OpenAI-compatible /v1/audio/speech endpoints, local JSON bridges, or Web Speech
+NB_SPEAK_VOICE_NOTES=true NB_SPEAK_TTS_BASE_URL="http://127.0.0.1:8000/v1" dsh web
 
 # Byte-for-byte reversible uninstall (never reads or touches .credentials.yaml)
 npx --yes github:NB-Corp/nb-speak-dsh --uninstall --profile web
@@ -81,14 +84,14 @@ printf 'Bubble 1: Query fixed.\n\n```sql\n-- fix.sql\nSELECT 1;\n```\n\nReady to
 
 ## Same Model, Different Delivery: 4 Live DSH Duels
 
-All four runs below were executed live on identical isolated DeepSeek Harness instances running **`cmd/deepseek-v4.1-flash`** (`:19081` Vanilla vs. `:19082` `@nb-corp/nb-speak-dsh` Native Mode + ElevenLabs `eleven_v4` audio, zero mocks):
+All four runs below were executed live on identical isolated DeepSeek Harness instances running **`cmd/deepseek-v4.1-flash`** (`:19081` Vanilla vs. `:19082` `@nb-corp/nb-speak-dsh` Native Mode with optional voice notes enabled, zero mocks):
 
 | Live Scenario | Vanilla DSH (`:19081` · Raw `assistant.content`) | With `nb-speak` (`:19082` · `send_bubble` + `send_artifact`) |
 | --- | --- | --- |
-| **1. Casual Friday Off-Work Chat**<br>*"Brain is fried in front of the convenience store fridge—what do I grab?"* | **4-item bolded nutrition matrix** (`Oden + Onigiri`, `Bento`, `Sandwich`, `Cup Noodles`) + physiology lecture about taste buds + butler sign-off. | **3 relaxed friend beats** (`Skip choosing—pick up oden plus a warm onigiri` / `Savory soup and rice cure Friday brain fog fast` / `Snap a photo of the rack if oden sold out`) + **4.5s ElevenLabs `Jessica` voice note** (*"Go straight for the hot counter. Weekend officially starts once that first bite lands."*). **Zero code cards.** |
-| **2. 4.2M-Row SQL Triage**<br>*"`orders` pagination spiked to 4.2s on daytime primary, zero table locks allowed"* | Multi-section `###` headings + numbered checklists + inline SQL fences overflowing chat width. | **3 crisp SRE beats** (`Hold off scaling hardware...` / `Build the index CONCURRENTLY right now...` / `Swap deep pages to keyset cursors...`) + **8s calm voice aside** + collapsible, one-click copyable **`orders-pagination-fix.sql`** card. |
-| **3. Multi-File Kanban Bugfix**<br>*"Fix dual-running timer leak + live `MM:SS` + pine-green dot + filter pills"* | **13/13 tests pass**, followed by a multi-screen file-by-file changelog essay after editing 9 files. | **17/17 tests pass (zero engineering loss)**, delivered in **4 crisp beats** + warm voice note confirming active stopwatch continuity + **`board.css`** card. |
-| **4. Persona Under Concurrency Load**<br>*Tsundere girlfriend `AGENTS.md`: Turn 1 caught in rain -> Turn 2 deadlocked Python TTL LRU* | Stays in character on Turn 1, then **collapses completely on Turn 2** into a 10-paragraph mutex postmortem lecture. | **100% character & engineering fidelity across all turns**: playful short beats (`Lending out umbrellas while deadlocking Python dicts`) + dry ElevenLabs voice note + stress-tested **`ttl_lru.py`** card. |
+| **1. Casual Friday Off-Work Chat**<br>*"Brain is fried in front of the convenience store fridge—what do I grab?"* | **4-item bolded nutrition matrix** (`Oden + Onigiri`, `Bento`, `Sandwich`, `Cup Noodles`) + physiology lecture about taste buds + butler sign-off. | **3 relaxed friend beats** (`Skip choosing—pick up oden plus a warm onigiri` / `Savory soup and rice cure Friday brain fog fast` / `Snap a photo of the rack if oden sold out`) + **optional 4.5s warm voice note** (*"Go straight for the hot counter. Weekend officially starts once that first bite lands."*). **Zero code cards.** |
+| **2. 4.2M-Row SQL Triage**<br>*"`orders` pagination spiked to 4.2s on daytime primary, zero table locks allowed"* | Multi-section `###` headings + numbered checklists + inline SQL fences overflowing chat width. | **3 crisp SRE beats** (`Hold off scaling hardware...` / `Build the index CONCURRENTLY right now...` / `Swap deep pages to keyset cursors...`) + **optional 8s calm voice aside** + collapsible, one-click copyable **`orders-pagination-fix.sql`** card. |
+| **3. Multi-File Kanban Bugfix**<br>*"Fix dual-running timer leak + live `MM:SS` + pine-green dot + filter pills"* | **13/13 tests pass**, followed by a multi-screen file-by-file changelog essay after editing 9 files. | **17/17 tests pass (zero engineering loss)**, delivered in **4 crisp beats** + optional warm voice note confirming active stopwatch continuity + **`board.css`** card. |
+| **4. Persona Under Concurrency Load**<br>*Tsundere girlfriend `AGENTS.md`: Turn 1 caught in rain -> Turn 2 deadlocked Python TTL LRU* | Stays in character on Turn 1, then **collapses completely on Turn 2** into a 10-paragraph mutex postmortem lecture. | **100% character & engineering fidelity across all turns**: playful short beats (`Lending out umbrellas while deadlocking Python dicts`) + optional dry voice note + stress-tested **`ttl_lru.py`** card. |
 
 <details>
 <summary><strong>View Full Side-by-Side DSH Captures (Kanban 17/17 Challenge &amp; Persona Concurrency Test)</strong></summary>
@@ -191,13 +194,19 @@ data: [DONE]
 | --- | --- | --- | --- |
 | **Target Models** | Any configured DSH provider directly (`deepseek`, `cmd/deepseek-v4.1-flash`, OpenAI, Anthropic, Gemini) | External or proxy-routed OpenAI-compatible endpoints | Split-Phase models or `<0.8s` 4B voice-translator sidecars (`http://127.0.0.1:18088/v1`) |
 | **Delivery Surface** | First-class `send_bubble` (`exec.concludeTurn()`) + `send_artifact` DSH tools; `dist/client.js` renders tactile IM bubbles, playable 22-bar `<audio>` / Web Speech voice-note pills, and copyable code/SQL/diff/table cards outside the collapsed step summary | Injects `send_message` + `send_artifact` at the HTTP proxy layer and unwraps bubbles into paragraphs | Encodes 5-axis weights into `nb-speak-voice-v1\|w0,w1,w2,w3,w4` and formats spoken newlines via `BubbleStreamFormatter` |
-| **Best For** | Zero proxy hops, instant WebUI bubbles & ElevenLabs `eleven_v4` playback, 100% native DSH trajectory & token telemetry | Non-WebUI OpenAI-compatible clients sharing a DSH host | Sub-second companion gateways or multi-LoRA continuous voice mixing |
+| **Best For** | Zero proxy hops, instant WebUI bubbles & artifact cards (with optional voice playback), 100% native DSH trajectory & token telemetry | Non-WebUI OpenAI-compatible clients sharing a DSH host | Sub-second companion gateways or multi-LoRA continuous voice mixing |
 
-### 2. Optional ElevenLabs `eleven_v4` Real Audio + Zero-Config Web Speech Fallback
+### 2. Optional Provider-Agnostic Voice Notes (Off by Default)
 
-In `native` mode, `send_bubble` supports optional real neural speech without adding runtime dependencies or polluting LLM context tokens:
-- When `ELEVENLABS_API_KEY` (or a local JSON TTS bridge via `NB_SPEAK_TTS_BRIDGE`) is present, `send_bubble` synthesizes `eleven_v4` audio (auto-anchoring Mandarin turns with `language_code: "zh"` and `[Standard Mandarin accent]` on English premade voices such as `Jessica` / `Sarah`), strips the DataURI from LLM `render()` output to save context tokens, and streams `audioSrc` via `presentationMeta` straight to `VoiceNotePill` `<audio>`.
-- When no TTS key is configured, `VoiceNotePill` seamlessly falls back to browser Web Speech synthesis with deterministic 22-bar waveform progress—zero errors, zero broken UI.
+By default, **`enableVoiceNotes` is `false`** across both `@nb-corp/nb-speak` (`nb-speak serve`, pass `--voice-notes` or `NB_SPEAK_VOICE_NOTES=true` to enable) and `@nb-corp/nb-speak-dsh`—users get pure text bubbles and `send_artifact` cards with zero voice prompting or TTS calls. When explicitly opted in, `src/tts.ts` supports any speech backend without polluting LLM context tokens:
+
+| TTS Provider Option | How to Enable | LLM Token Impact |
+| --- | --- | --- |
+| **OpenAI-compatible `/v1/audio/speech`** *(OpenAI, Qwen TTS, Fish, Kokoro, vLLM)* | `NB_SPEAK_VOICE_NOTES=true` + `NB_SPEAK_TTS_BASE_URL` (plus optional `NB_SPEAK_TTS_API_KEY`, `NB_SPEAK_TTS_MODEL`, `NB_SPEAK_TTS_VOICE`) | **`0` extra tokens** |
+| **Local JSON Bridge Script** | `NB_SPEAK_VOICE_NOTES=true` + `NB_SPEAK_TTS_BRIDGE` | **`0` extra tokens** |
+| **Cloud TTS / Web Speech Fallback** | `NB_SPEAK_VOICE_NOTES=true` with optional cloud TTS provider (`NB_SPEAK_TTS_PROVIDER=elevenlabs` + `ELEVENLABS_API_KEY`, etc.), or zero-key browser **Web Speech API** fallback when unset | **`0` extra tokens** |
+
+All audio synthesis strips `audioSrc` DataURIs from LLM `render()` output to save context tokens while streaming audio to `VoiceNotePill` `<audio>` via `presentationMeta`.
 
 ### 3. Zero-Collision Subagent Orchestration & 5-Axis Style Budget
 
@@ -293,12 +302,12 @@ Layer 1 enforces universal mobile delivery physics; Layer 2 resolves tone in str
 nb-speak/
 ├── packages/
 │   ├── core/                # @nb-corp/nb-speak: protocol, parser, TS bubble_lint, HTTP/SSE bridge & CLI
-│   └── dsh-plugin/          # @nb-corp/nb-speak-dsh: native DSH tools, ElevenLabs/WebSpeech UI & installer
+│   └── dsh-plugin/          # @nb-corp/nb-speak-dsh: native DSH tools, WebUI bubbles & installer
 ├── skills/
 │   └── chat-human/          # Universal chat-human Agent Skill (v0.2.0) + bubble_lint.py + proactive_gate.py
 ├── apps/
 │   └── web/                 # Tactile warm paper-ink IM stage source (exports to docs/)
-├── docs/                    # GitHub Pages live playground (EN + zh-CN), ElevenLabs v4 clips & DSH captures
+├── docs/                    # GitHub Pages live playground (EN + zh-CN), optional audio demos & DSH captures
 ├── llms.txt                 # Concise LLM/GEO index (llmstxt.org)
 └── llms-full.txt            # Complete protocol schemas, metrics, comparison matrix & Q&A
 ```
@@ -313,4 +322,4 @@ npm test
 
 [MIT](LICENSE) © 2026 NB-Corp — applies to all source code, protocol schemas, CLI tools, DSH plugin, `chat-human` Agent Skill, and documentation.
 
-**Demo Audio Assets & AI Disclosure:** All static `.mp3` voice-note clips in [`apps/web/src/assets/audio/`](apps/web/src/assets/audio/NOTICE.txt) (`docs/assets/audio/`) are AI-synthesized speech generated via ElevenLabs (`eleven_v4`) using official premade platform voices (`Jessica`, `Sarah`, `Julia`, `ZiYue`, `ShanShan`) under paid commercial terms, with zero real-person voice cloning. Per upstream provider terms, demo audio clips are included solely to demonstrate `nb-speak` voice-note playback and may not be extracted to train competing speech models or misrepresented as human recordings.
+**Demo Audio Assets & AI Disclosure:** Static `.mp3` voice-note clips in [`apps/web/src/assets/audio/`](apps/web/src/assets/audio/NOTICE.txt) (`docs/assets/audio/`) are AI-synthesized speech included solely to demonstrate optional `nb-speak` voice-note playback with zero real-person voice cloning; see [AI Demo Audio Notice](apps/web/src/assets/audio/NOTICE.txt) for upstream speech-model attribution and terms.

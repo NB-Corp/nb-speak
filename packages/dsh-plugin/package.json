@@ -1,7 +1,7 @@
 {
   "name": "@nb-corp/nb-speak-dsh",
   "version": "0.3.1",
-  "description": "Full-stack DeepSeek Harness (DSH) plugin + WebUI client extension for nb-speak (standalone repo: NB-Corp/nb-speak-dsh): native send_bubble & send_artifact tools, tactile IM chat bubbles, playable voice-note pills, interactive artifact cards, continuous 5-axis persona weights, and optional Mode B voice-model bridge.",
+  "description": "Zero-dependency DeepSeek Harness (DSH) native IM bubble plugin & WebUI extension: send_bubble (exec.concludeTurn()) + send_artifact tools, tactile squircle bubbles, copyable artifact cards, and optional 22-bar voice-note pills (disabled by default).",
   "icon": "./icon.svg",
   "license": "MIT",
   "author": "Nai Long 7th <nailong@xter.org>",
@@ -42,6 +42,10 @@
     "./dsh-tools": {
       "types": "./src/dsh-tools.ts",
       "default": "./dist/dsh-tools.js"
+    },
+    "./tts": {
+      "types": "./src/tts.ts",
+      "default": "./dist/tts.js"
     },
     "./client": "./dist/client.js",
     "./client-model": {

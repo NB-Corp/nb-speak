@@ -1,6 +1,6 @@
 # `@nb-corp/nb-speak-dsh`
 
-Full-stack DeepSeek Harness (`DSH`) Cordis plugin and WebUI client extension—also published as the standalone zero-clone repository **[`NB-Corp/nb-speak-dsh`](https://github.com/NB-Corp/nb-speak-dsh)** for [`NB-Corp/nb-speak`](https://github.com/NB-Corp/nb-speak). Replaces single-blob Markdown essays in DSH with tactile IM chat bubbles, playable 22-bar ElevenLabs `eleven_v4` / Web Speech voice-note pills, and collapsible one-click copyable artifact cards—with zero runtime npm dependencies and zero subagent tool collisions.
+Full-stack DeepSeek Harness (`DSH`) Cordis plugin and WebUI client extension—also published as the standalone zero-clone repository **[`NB-Corp/nb-speak-dsh`](https://github.com/NB-Corp/nb-speak-dsh)** for [`NB-Corp/nb-speak`](https://github.com/NB-Corp/nb-speak). Replaces single-blob Markdown essays in DSH with tactile IM chat bubbles, collapsible one-click copyable artifact cards, and optional 22-bar voice-note pills (`enableVoiceNotes: false` by default)—with zero runtime npm dependencies and zero subagent tool collisions.
 
 **[Standalone DSH Showcase → `nb-corp.github.io/nb-speak-dsh/`](https://nb-corp.github.io/nb-speak-dsh/)** · **[中文展台 → `/zh/`](https://nb-corp.github.io/nb-speak-dsh/zh/)** · **[Protocol Playground → `nb-corp.github.io/nb-speak/`](https://nb-corp.github.io/nb-speak/)**
 
@@ -40,19 +40,20 @@ node packages/dsh-plugin/scripts/install-dsh.mjs --apply --link --profile web
    - Registers a turn-level event reducer (`nbSpeakTurnDefinition`) and mounts into `conversation.chat.turnTail` outside collapsed tool-step summaries.
    - Renders organic squircle chat bubbles, deterministic 22-bar waveform `VoiceNotePill` players, and syntax-badged `ArtifactCardView` blocks (supporting GFM pipe-table HTML rendering, diff line coloring, `>22`-line expand/collapse, and clipboard copy).
 
-## Optional ElevenLabs `eleven_v4` Audio + Zero-Config Fallback
+## Optional Provider-Agnostic Voice Notes (Off by Default)
 
-`@nb-corp/nb-speak-dsh` plays voice notes out of the box for every user while upgrading automatically when ElevenLabs credentials or a local TTS bridge are present (`src/tts.ts`):
+`@nb-corp/nb-speak-dsh` defaults to **`enableVoiceNotes: false`** (pure text bubbles and `send_artifact` cards with zero voice prompting or TTS calls). Opt in with `--voice-notes`, `enableVoiceNotes: true`, or `NB_SPEAK_VOICE_NOTES=true`, then configure any speech backend (`src/tts.ts`):
 
 | Environment / Config | Audio Synthesis Path | LLM Token Impact |
 | --- | --- | --- |
-| **Default (no TTS key)** | Instant `0ms` tool completion; `VoiceNotePill` plays via browser **Web Speech API** + animated 22-bar progress (`data-audio-mode="web-speech"`). | `0` extra tokens |
-| **`ELEVENLABS_API_KEY` set** (or DSH credential store ref `ttsApiKeyRef`) | Calls ElevenLabs `eleven_v4` (`mp3_44100_128`); auto-selects `Jessica` (`warm`/`playful`/`relieved`) or `Julia` (`calm`/`dry`/`serious`) unless overridden by `ttsVoice` / `NB_SPEAK_TTS_VOICE`, and auto-injects `language_code: "zh"` + `[Standard Mandarin accent]` on Mandarin turns to eliminate Cantonese prosody drift. | **`0` extra tokens** (`render()` strips `audioSrc` DataURI; only WebUI `presentationMeta` receives `<audio>` data) |
-| **`NB_SPEAK_TTS_BRIDGE` set** (or `ttsBridgeScript` config) | Invokes a local JSON TTS bridge script (`{ action: "submit", input, output, resultFile }`) for custom EBU R128 `-16 LUFS` mastering or multi-key pools. | **`0` extra tokens** |
+| **Default (`enableVoiceNotes: false`)** | Text bubbles + copyable `send_artifact` cards only (`voice_note` omitted from schema & prompt). | `0` extra tokens |
+| **OpenAI-compatible `/v1/audio/speech`** (`NB_SPEAK_VOICE_NOTES=true` + `NB_SPEAK_TTS_BASE_URL`) | Calls any OpenAI-compatible speech endpoint (OpenAI, Qwen TTS, Fish, Kokoro, vLLM) with `NB_SPEAK_TTS_API_KEY`, `NB_SPEAK_TTS_MODEL`, and `NB_SPEAK_TTS_VOICE`. | **`0` extra tokens** |
+| **Local JSON Bridge** (`NB_SPEAK_VOICE_NOTES=true` + `NB_SPEAK_TTS_BRIDGE`) | Invokes a local JSON TTS bridge script (`{ action: "submit", input, output, resultFile }`) for custom EBU R128 `-16 LUFS` mastering or local engines. | **`0` extra tokens** |
+| **Cloud TTS / Web Speech Fallback** (`NB_SPEAK_VOICE_NOTES=true`) | Supports optional cloud speech providers (`NB_SPEAK_TTS_PROVIDER=elevenlabs` with `ELEVENLABS_API_KEY`, etc.), or falls back automatically to zero-key browser **Web Speech API** (`data-audio-mode="web-speech"`) when unset. | **`0` extra tokens** (`render()` strips `audioSrc` DataURI; only WebUI `presentationMeta` receives `<audio>` data) |
 
 ```bash
-# Launch DSH WebUI with live ElevenLabs eleven_v4 voice-note synthesis enabled:
-ELEVENLABS_API_KEY="xi-..." NB_SPEAK_TTS_VOICE="Jessica" dsh web
+# Launch DSH WebUI with optional voice notes via any OpenAI-compatible /v1/audio/speech server:
+NB_SPEAK_VOICE_NOTES=true NB_SPEAK_TTS_BASE_URL="http://127.0.0.1:8000/v1" dsh web
 ```
 
 ## Four Built-In Presets & 5-Axis Continuous Style Budget
@@ -70,10 +71,10 @@ When `preset: "custom"` is selected and `w1 + w2 + w3 + w4 > 1.15`, `computeEffe
 
 ## Live Dual-Instance DSH Captures (`:19081` Vanilla vs `:19082` `nb-speak`)
 
-### 1. Casual Friday Off-Work Chat (Zero Code Cards + 4s ElevenLabs Voice Note)
+### 1. Casual Friday Off-Work Chat (Zero Code Cards + Optional 4s Voice Note)
 
 <p align="center">
-  <img src="../../docs/assets/dsh-compare-casual.png" alt="Casual Friday off-work chat on DSH: Vanilla 4-bullet meal lecture vs nb-speak 3 friend bubbles + playable ElevenLabs voice note" width="1100">
+  <img src="../../docs/assets/dsh-compare-casual.png" alt="Casual Friday off-work chat on DSH: Vanilla 4-bullet meal lecture vs nb-speak 3 friend bubbles + optional voice note" width="1100">
 </p>
 
 ### 2. Multi-File Kanban & Live SLA Timer Bugfix (`17/17` Tests Green)
