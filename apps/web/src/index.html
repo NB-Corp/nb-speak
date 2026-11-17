@@ -326,11 +326,50 @@
 
           <div class="cmd-strip">
             <div class="cmd-label">
-              <span>4. OpenAI / SSE Bridge &amp; Other Harnesses (DSH)</span>
+              <span>4. MCP Server (Cursor · Cherry · Cline · Zed)</span>
               <button type="button" class="mini-btn" data-copy-target="cmd-4">Copy</button>
             </div>
-            <pre class="cmd-code" id="cmd-4">npx --yes github:NB-Corp/nb-speak serve --port 18090</pre>
+            <pre class="cmd-code" id="cmd-4">npx --yes github:NB-Corp/nb-speak mcp</pre>
           </div>
+        </div>
+
+        <div class="matrix-wrap" style="margin-top:20px;">
+          <table class="matrix-table">
+            <thead>
+              <tr>
+                <th>Ecosystem Surface</th>
+                <th>Package / Registry ID</th>
+                <th>One-Line Install or Import</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>Claude Code Marketplace</strong></td>
+                <td><code class="mono">.claude-plugin/</code> (<code class="mono">nb-speak@nb-corp</code>)</td>
+                <td><code class="mono">/plugin marketplace add NB-Corp/nb-speak</code></td>
+              </tr>
+              <tr>
+                <td><strong>LangBot v4+</strong> (WeChat · QQ · Feishu)</td>
+                <td><code class="mono">NB-Corp/langbot_plugin_nb_speak</code></td>
+                <td>Paste repo URL in LangBot WebUI Plugin Space</td>
+              </tr>
+              <tr>
+                <td><strong>Koishi v4</strong> (OneBot · Satori · Discord)</td>
+                <td><code class="mono">koishi-plugin-nb-speak</code></td>
+                <td><code class="mono">npm install koishi-plugin-nb-speak</code></td>
+              </tr>
+              <tr>
+                <td><strong>NoneBot2</strong> (OneBot V11/V12 · TG)</td>
+                <td><code class="mono">nonebot-plugin-nb-speak</code></td>
+                <td><code class="mono">nb plugin install nonebot-plugin-nb-speak</code></td>
+              </tr>
+              <tr>
+                <td><strong>OpenWebUI / OpenAI Bridge</strong></td>
+                <td><code class="mono">nb_speak_filter.py</code> · <code class="mono">@nb-corp/nb-speak</code></td>
+                <td>Import <code class="mono">integrations/openwebui/nb_speak_filter.py</code> or run <code class="mono">nb-speak serve</code></td>
+              </tr>
+            </tbody>
+          </table>
         </div>
 
         <div class="matrix-wrap" style="margin-top:28px;">

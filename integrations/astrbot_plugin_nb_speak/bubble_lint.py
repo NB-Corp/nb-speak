@@ -132,6 +132,8 @@ def _split_plain_beats(stripped: str, *, explicit_plain_surface: bool) -> List[s
         return []
     if re.search(r"\n\s*\n", stripped):
         return [blk.strip() for blk in re.split(r"\n\s*\n+", stripped) if blk.strip()]
+    if MD_TABLE_RE.search(stripped) or MD_CODE_FENCE_RE.search(stripped) or NUMBERED_WALL_RE.search(stripped):
+        return [stripped]
     lines = [ln.strip() for ln in stripped.splitlines() if ln.strip()]
     if explicit_plain_surface and len(lines) <= 2:
         # Preserve tightly coupled 2-line copy-paste units (e.g. locker + pickup code)

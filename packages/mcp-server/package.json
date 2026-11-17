@@ -1,0 +1,55 @@
+{
+  "name": "@nb-corp/nb-speak-mcp",
+  "version": "0.2.0",
+  "description": "Zero-dependency MCP (Model Context Protocol) stdio server for NB Speak & chat-human: formats raw Markdown pipe tables and 250-word LLM walls into paced IM bubbles, mobile key-value cards, and deterministic bubble_lint reports.",
+  "license": "MIT",
+  "author": "Nai Long 7th <nailong@xter.org>",
+  "homepage": "https://nb-corp.github.io/nb-speak/",
+  "bugs": {
+    "url": "https://github.com/NB-Corp/nb-speak/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/NB-Corp/nb-speak.git",
+    "directory": "packages/mcp-server"
+  },
+  "mcpName": "io.github.NB-Corp/nb-speak",
+  "keywords": [
+    "mcp",
+    "mcp-server",
+    "model-context-protocol",
+    "nb-speak",
+    "chat-human",
+    "telegram",
+    "whatsapp",
+    "markdown-tables",
+    "im-bubbles"
+  ],
+  "type": "module",
+  "main": "./dist/server.js",
+  "types": "./src/server.ts",
+  "bin": {
+    "nb-speak-mcp": "./bin/nb-speak-mcp.mjs"
+  },
+  "exports": {
+    ".": {
+      "types": "./src/server.ts",
+      "default": "./dist/server.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "bin",
+    "dist",
+    "src",
+    "skills",
+    "LICENSE",
+    "README.md"
+  ],
+  "scripts": {
+    "test": "node --test tests/*.test.ts"
+  },
+  "engines": {
+    "node": ">=22.19.0"
+  }
+}

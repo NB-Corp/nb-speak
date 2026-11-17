@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-marketplace.json",
+  "name": "nb-corp",
+  "owner": {
+    "name": "NB-Corp",
+    "url": "https://github.com/NB-Corp"
+  },
+  "description": "Install NB Speak (IM bubble protocol, MCP server, and chat-human skill) as a Claude Code plugin.",
+  "plugins": [
+    {
+      "name": "nb-speak",
+      "source": "./",
+      "description": "Stop AI agents from dumping raw Markdown pipe tables and 250-word essays on Telegram, WhatsApp, Discord, WeChat, and Slack.",
+      "version": "0.2.0",
+      "license": "MIT",
+      "keywords": [
+        "im",
+        "chat-human",
+        "telegram",
+        "whatsapp",
+        "mcp",
+        "markdown-tables",
+        "agent-skills"
+      ]
+    }
+  ]
+}

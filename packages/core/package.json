@@ -50,6 +50,10 @@
       "types": "./src/parser.ts",
       "default": "./dist/parser.js"
     },
+    "./format": {
+      "types": "./src/format.ts",
+      "default": "./dist/format.js"
+    },
     "./bridge": {
       "types": "./src/bridge.ts",
       "default": "./dist/bridge.js"

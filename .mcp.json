@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "nb-speak": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "github:NB-Corp/nb-speak",
+        "mcp"
+      ]
+    }
+  }
+}

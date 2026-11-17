@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: EventListener
+metadata:
+  name: default
+  label:
+    en_US: NB Speak Outbound & Prompt Listener
+    zh_Hans: NB Speak 提示词与回复分段监听器
+spec:
+execution:
+  python:
+    path: default.py
+    attr: DefaultEventListener

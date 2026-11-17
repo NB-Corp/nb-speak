@@ -31,10 +31,11 @@ test('openclaw.plugin.json manifest obeys OpenClaw native validation rules and d
   assert.equal(manifest.configSchema.additionalProperties, false);
   assert.equal(manifest.configSchema.properties.enableVoiceNotes.default, false);
   assert.equal(resolveOpenClawSpeakConfig(undefined).enableVoiceNotes, false);
-
-  for (const prompt of manifest.recommendedPrompts) {
-    assert.ok(typeof prompt === 'string' && prompt.length > 0 && prompt.length <= 128);
-  }
+  assert.equal('recommendedPrompts' in manifest, false);
+  assert.equal(pkg.openclaw.build.openclawVersion, '2026.11.5');
+  assert.ok(fs.existsSync(path.join(PLUGIN_ROOT, 'assets', 'icon.png')));
+  const iconStat = fs.statSync(path.join(PLUGIN_ROOT, 'assets', 'icon.png'));
+  assert.ok(iconStat.size > 256 && iconStat.size <= 512 * 1024);
   assert.deepEqual(pkg.openclaw.extensions, ['./dist/plugin.js']);
 });
 

@@ -1,0 +1,150 @@
+apiVersion: v1
+kind: Plugin
+metadata:
+  author: NB-Corp
+  name: langbot_plugin_nb_speak
+  repository: https://github.com/NB-Corp/langbot_plugin_nb_speak
+  version: 0.2.0
+  icon: assets/icon.svg
+  label:
+    en_US: NB Speak — Human IM Bubbles & Table Gate
+    zh_Hans: NB Speak — 真人感短气泡与防破表门禁
+  description:
+    en_US: Stop chatbots from dumping raw Markdown pipe tables and 250-word essays on WeChat, QQ, Feishu, DingTalk, Telegram, and Discord. Protects fenced code blocks and paces natural short bubbles (voice notes off by default).
+    zh_Hans: 终结微信、QQ、飞书、钉钉、Telegram 机器人的 250 字长篇大论与裸 Markdown 管道表格乱码：保护代码块完整闭合，自动转手机端键值卡片并按真人打字节奏分段发送（默认关闭语音条）。
+spec:
+  config:
+  - name: inject_system_prompt
+    type: bool
+    label:
+      en_US: Inject chat-human IM Physics Prompt
+      zh_Hans: 注入 chat-human 手机聊天物理层提示词
+    description:
+      en_US: Guide the LLM to reply in 1-2 natural short beats without raw pipe tables or stage brackets.
+      zh_Hans: 引导模型默认输出 1-2 段自然短句，拒写裸管道表格、括号舞台动作与客服套话。
+    required: false
+    default: true
+  - name: persona_preset
+    type: select
+    label:
+      en_US: Tone Baseline
+      zh_Hans: 语气风格预设
+    description:
+      en_US: Keep host persona or apply an optional tone baseline.
+      zh_Hans: 保持宿主原有设定或叠加可选口吻基线。
+    required: false
+    default: keep_host
+    options:
+    - name: keep_host
+      label:
+        en_US: Keep Host Persona
+        zh_Hans: 保持宿主原有设定
+    - name: neutral_peer
+      label:
+        en_US: Neutral Peer
+        zh_Hans: 平等自然技术搭档
+    - name: sharp_lead
+      label:
+        en_US: Sharp Tech Lead
+        zh_Hans: 干练直接负责人
+    - name: warm_companion
+      label:
+        en_US: Warm Friend
+        zh_Hans: 熟稔日常朋友
+    - name: calm_sre
+      label:
+        en_US: Calm On-Call SRE
+        zh_Hans: 沉稳值班 SRE
+  - name: platform_mode
+    type: select
+    label:
+      en_US: Table Formatting Mode
+      zh_Hans: 表格转换模式
+    description:
+      en_US: Convert raw Markdown pipe tables to mobile KV cards on QQ/WeChat/Feishu or <=40-col monospace on Telegram/Discord.
+      zh_Hans: 在微信/QQ/飞书/钉钉自动将裸管道表格转为键值卡片，在 Telegram/Discord 窄表转为等宽代码块。
+    required: false
+    default: auto
+    options:
+    - name: auto
+      label:
+        en_US: Auto (Platform-Aware)
+        zh_Hans: 自动按平台适配
+    - name: im_compact
+      label:
+        en_US: Always Compact KV Cards
+        zh_Hans: 始终转为紧凑键值卡片
+    - name: markdown_code
+      label:
+        en_US: Monospace Code Block (<=40 cols)
+        zh_Hans: 等宽代码块（超宽自动降级）
+  - name: max_bubbles
+    type: int
+    label:
+      en_US: Max Bubbles Per Turn
+      zh_Hans: 单轮最多气泡数
+    description:
+      en_US: Consolidate overflow beats without dropping text (default 4).
+      zh_Hans: 超出上限自动合并收尾，绝不丢字截断（默认 4）。
+    required: false
+    default: 4
+  - name: target_bubble_cjk_chars
+    type: int
+    label:
+      en_US: Target CJK Characters Per Bubble
+      zh_Hans: 单条气泡目标字数
+    description:
+      en_US: Preferred CJK character budget before splitting sentences (default 36).
+      zh_Hans: 长段落智能分句的目标字数上限（默认 36）。
+    required: false
+    default: 36
+  - name: paced_delivery
+    type: bool
+    label:
+      en_US: Paced Multi-Bubble Delivery
+      zh_Hans: 按真人打字节奏逐条发送
+    description:
+      en_US: Dispatch multi-segment replies with natural thumb-typing delays.
+      zh_Hans: 多气泡或独立代码/表格卡片按真人打字延迟逐条投递。
+    required: false
+    default: true
+  - name: enable_voice_notes
+    type: bool
+    label:
+      en_US: Enable Optional Voice Notes (Off by Default)
+      zh_Hans: 启用可选语音条补充（默认关闭）
+    description:
+      en_US: Strictly disabled by default; requires an OpenAI-compatible /v1/audio/speech endpoint when enabled.
+      zh_Hans: 默认严格关闭（纯文字短气泡 + 卡片）；仅在显式开启并配置兼容 TTS 接口时生效。
+    required: false
+    default: false
+  - name: tts_api_base
+    type: string
+    label:
+      en_US: Optional OpenAI-Compatible TTS URL
+      zh_Hans: 可选兼容 TTS 接口地址
+    description:
+      en_US: Base URL for /v1/audio/speech when voice notes are opted in.
+      zh_Hans: 开启可选语音条时使用的 /v1/audio/speech 服务地址。
+    required: false
+    default: ""
+  - name: tts_api_key
+    type: string
+    label:
+      en_US: Optional TTS API Key
+      zh_Hans: 可选 TTS 密钥
+    description:
+      en_US: Bearer token for optional TTS synthesis.
+      zh_Hans: 可选 TTS 接口鉴权密钥。
+    required: false
+    default: ""
+  components:
+    EventListener:
+      fromDirs:
+      - path: components/event_listener/
+execution:
+  python:
+    path: main.py
+    attr: NbSpeakPlugin
+  sharedRuntime: shared-runtime-v1
+  componentModel: stateless-v1

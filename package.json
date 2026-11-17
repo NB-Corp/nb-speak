@@ -16,6 +16,7 @@
   "bin": {
     "nb-speak": "./packages/core/bin/nb-speak.mjs",
     "nb-speak-bridge": "./packages/core/bin/nb-speak.mjs",
+    "nb-speak-mcp": "./packages/mcp-server/bin/nb-speak-mcp.mjs",
     "nb-speak-openclaw": "./packages/openclaw-plugin/scripts/install-openclaw.mjs",
     "nb-speak-dsh": "./packages/dsh-plugin/scripts/install-dsh.mjs"
   },
@@ -27,6 +28,14 @@
     "./openclaw": {
       "types": "./packages/openclaw-plugin/src/plugin.ts",
       "default": "./packages/openclaw-plugin/dist/plugin.js"
+    },
+    "./mcp": {
+      "types": "./packages/mcp-server/src/server.ts",
+      "default": "./packages/mcp-server/dist/server.js"
+    },
+    "./koishi": {
+      "types": "./packages/koishi-plugin/src/index.ts",
+      "default": "./packages/koishi-plugin/dist/index.js"
     },
     "./dsh": {
       "types": "./packages/dsh-plugin/src/plugin.ts",
@@ -44,10 +53,15 @@
     "build": "node scripts/build.mjs",
     "test:core": "node --test packages/core/tests/*.test.ts",
     "test:openclaw": "node --test packages/openclaw-plugin/tests/*.test.ts",
+    "test:mcp": "node --test packages/mcp-server/tests/*.test.ts",
+    "test:koishi": "node --test packages/koishi-plugin/tests/*.test.ts",
     "test:dsh": "node --test packages/dsh-plugin/tests/*.test.ts",
     "test:astrbot": "python -B -m unittest discover -s integrations/astrbot_plugin_nb_speak/tests -v",
+    "test:langbot": "python -B -m unittest discover -s integrations/langbot_plugin_nb_speak/tests -v",
+    "test:nonebot": "python -B -m unittest discover -s integrations/nonebot_plugin_nb_speak/tests -v",
+    "test:openwebui": "python -B -m unittest discover -s integrations/openwebui/tests -v",
     "test:py": "python -B -m unittest discover -s tests -v",
-    "test": "npm run build && npm run test:core && npm run test:openclaw && npm run test:dsh && npm run test:astrbot && npm run test:py",
+    "test": "npm run build && npm run test:core && npm run test:openclaw && npm run test:mcp && npm run test:koishi && npm run test:dsh && npm run test:astrbot && npm run test:langbot && npm run test:nonebot && npm run test:openwebui && npm run test:py",
     "serve": "node packages/core/bin/nb-speak.mjs serve",
     "lint": "node packages/core/bin/nb-speak.mjs lint"
   }

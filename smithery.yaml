@@ -1,0 +1,29 @@
+startCommand:
+  type: stdio
+  configSchema:
+    type: object
+    properties:
+      persona:
+        type: string
+        enum:
+          - neutral_peer
+          - sharp_lead
+          - warm_companion
+          - calm_sre
+        default: neutral_peer
+        description: Active conversational tone preset for the chat-human prompt layer.
+      enableVoiceNotes:
+        type: boolean
+        default: false
+        description: Enable optional voice_note guidance (off by default).
+  commandFunction: |-
+    (config) => ({
+      command: 'node',
+      args: [
+        'packages/core/bin/nb-speak.mjs',
+        'mcp',
+        '--persona',
+        config.persona || 'neutral_peer',
+        ...(config.enableVoiceNotes ? ['--voice-notes'] : []),
+      ],
+    })

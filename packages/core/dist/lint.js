@@ -128,6 +128,9 @@ export function splitPlainBeats(raw        , explicitPlainSurface         )     
       .map((blk) => blk.trim())
       .filter(Boolean);
   }
+  if (MD_TABLE_RE.test(stripped) || MD_CODE_FENCE_RE.test(stripped) || NUMBERED_WALL_RE.test(stripped)) {
+    return [stripped];
+  }
   const lines = stripped
     .split(/\r?\n/)
     .map((ln) => ln.trim())

@@ -1,0 +1,21 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.NB-Corp/nb-speak",
+  "title": "NB Speak — Human IM Bubbles & Table Gate",
+  "description": "Stop AI agents from dumping raw Markdown pipe tables and 250-word essays on Telegram, WhatsApp, Discord, WeChat, and QQ.",
+  "repository": {
+    "url": "https://github.com/NB-Corp/nb-speak",
+    "source": "github"
+  },
+  "version": "0.2.0",
+  "packages": [
+    {
+      "registryType": "npm",
+      "identifier": "@nb-corp/nb-speak-mcp",
+      "version": "0.2.0",
+      "transport": {
+        "type": "stdio"
+      }
+    }
+  ]
+}

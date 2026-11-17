@@ -1,3 +1,4 @@
+<!-- mcp-name: io.github.NB-Corp/nb-speak -->
 <div align="center">
 
 <picture>
@@ -13,7 +14,7 @@
 [![License: MIT](https://img.shields.io/badge/license-MIT-2d4b35?style=flat-square)](LICENSE)
 [![Playground](https://img.shields.io/badge/playground-live%20split--stage-2d4b35?style=flat-square)](https://nb-corp.github.io/nb-speak/)
 
-[**Interactive Split-Stage**](https://nb-corp.github.io/nb-speak/) · [30s Quick Start](#quick-start) · [PA Plugins (OpenClaw & AstrBot)](#personal-agent-plugins-openclaw--astrbot) · [Protocol & SSE Bridge](#architecture--wire-protocol) · [bubble_lint Spec](#deterministic-bubble_lint-specification) · [Live Benchmarks](#same-model-different-delivery-4-live-benchmarks) · [llms.txt](llms.txt)
+[**Interactive Split-Stage**](https://nb-corp.github.io/nb-speak/) · [30s Quick Start](#quick-start) · [Ecosystem Matrix](#ecosystem-integration-matrix) · [Protocol & SSE Bridge](#architecture--wire-protocol) · [bubble_lint Spec](#deterministic-bubble_lint-specification) · [Live Benchmarks](#same-model-different-delivery-4-live-benchmarks) · [llms.txt](llms.txt)
 
 **English** · [简体中文](README.zh-CN.md)
 
@@ -70,24 +71,35 @@ Fixes `AstrBot#8614` (built-in `segmented_reply` stopping above 150 chars, regex
 git clone --depth 1 https://github.com/NB-Corp/astrbot_plugin_nb_speak <AstrBot>/data/plugins/astrbot_plugin_nb_speak
 ```
 
-### 4. OpenAI / SSE Bridge, CLI & Additional Clients (OpenWebUI, LobeChat, `nb-im`, DSH)
+### 4. MCP Server, Claude Code Marketplace & OpenAI / SSE Bridge
 
 ```bash
-# 1. Start the local OpenAI-compatible HTTP/SSE bridge on http://127.0.0.1:18090
-#    (Default: pure text bubbles + artifact cards; enableVoiceNotes = false)
-NB_SPEAK_API_KEY="sk-..." npx --yes github:NB-Corp/nb-speak serve \
-  --port 18090 \
-  --upstream-url https://api.deepseek.com/v1 \
-  --model deepseek-chat \
-  --persona calm_sre
+# 1. Standard MCP stdio server (Cursor, Windsurf, Cherry Studio, Cline, Roo Code, Goose, Zed, Raycast)
+npx --yes github:NB-Corp/nb-speak mcp
 
-# 2. Deterministically lint any outbound turn (0 issues -> exit code 0)
-echo '{"bubbles":["Error rate held at 0.02%, p99 down to 38ms","Pool looks steady, good to push 100%"]}' \
-  | node packages/core/bin/nb-speak.mjs lint --json
+# 2. Claude Code native plugin marketplace (bundles chat-human skill + MCP config)
+#    Run inside Claude Code: /plugin marketplace add NB-Corp/nb-speak && /plugin install nb-speak@nb-corp
 
-# 3. Additional supported harnesses — e.g. DeepSeek Harness (DSH) WebUI client extension:
-npx --yes github:NB-Corp/nb-speak-dsh --apply --profile web
+# 3. Local OpenAI-compatible HTTP/SSE bridge on http://127.0.0.1:18090 (enableVoiceNotes = false default)
+NB_SPEAK_API_KEY="sk-..." npx --yes github:NB-Corp/nb-speak serve --port 18090 --upstream-url https://api.deepseek.com/v1
 ```
+
+### Ecosystem Integration Matrix
+
+All 10 surfaces share the exact same deterministic pipe-table converter, fenced-code shield, and 8-rule `bubble_lint` (`enableVoiceNotes = false` by default everywhere):
+
+| Ecosystem / Client | Package / Path | Official Market / Registry | One-Line Setup |
+| --- | --- | --- | --- |
+| **skills.sh** (70+ Agents) | [`skills/chat-human`](skills/chat-human) | `skills.sh` · `NB-Corp/chat-human` | `npx skills add NB-Corp/chat-human --global --agent '*'` |
+| **Claude Code** | [`.claude-plugin/`](.claude-plugin) | Claude Plugin Marketplaces | `/plugin marketplace add NB-Corp/nb-speak` -> `/plugin install nb-speak@nb-corp` |
+| **MCP Clients** (Cursor / Cherry / Cline) | [`packages/mcp-server`](packages/mcp-server) | `io.github.NB-Corp/nb-speak` (`server.json` · Glama · Smithery) | `npx -y github:NB-Corp/nb-speak mcp` |
+| **OpenClaw** (TG / WhatsApp / Discord) | [`packages/openclaw-plugin`](packages/openclaw-plugin) | ClawHub (`@nb-corp/nb-speak-openclaw`) | `npx --yes github:NB-Corp/nb-speak openclaw --apply` |
+| **AstrBot** (QQ / WeChat / Feishu) | [`integrations/astrbot_plugin_nb_speak`](integrations/astrbot_plugin_nb_speak) | AstrBot Market (`NB-Corp/astrbot_plugin_nb_speak`) | Paste `https://github.com/NB-Corp/astrbot_plugin_nb_speak` in WebUI |
+| **LangBot v4+** (WeChat / QQ / DingTalk) | [`integrations/langbot_plugin_nb_speak`](integrations/langbot_plugin_nb_speak) | LangBot Space (`NB-Corp/langbot_plugin_nb_speak`) | Paste `https://github.com/NB-Corp/langbot_plugin_nb_speak` in WebUI |
+| **Koishi v4** (OneBot / Satori / Discord) | [`packages/koishi-plugin`](packages/koishi-plugin) | Koishi Market (`koishi-plugin-nb-speak`) | `npm install koishi-plugin-nb-speak` |
+| **NoneBot2** (OneBot V11/V12 / TG / Lark) | [`integrations/nonebot_plugin_nb_speak`](integrations/nonebot_plugin_nb_speak) | NoneBot Store (`nonebot-plugin-nb-speak`) | `nb plugin install nonebot-plugin-nb-speak` |
+| **OpenWebUI** | [`integrations/openwebui/nb_speak_filter.py`](integrations/openwebui/nb_speak_filter.py) | OpenWebUI Community Functions (`Filter`) | Import `nb_speak_filter.py` in **Workspace -> Functions** |
+| **OpenAI / SSE Bridge & DSH** | [`packages/core`](packages/core) · [`packages/dsh-plugin`](packages/dsh-plugin) | npm (`@nb-corp/nb-speak`) · `NB-Corp/nb-speak-dsh` | `npx --yes github:NB-Corp/nb-speak serve --port 18090` |
 
 ---
 

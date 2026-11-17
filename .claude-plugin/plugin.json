@@ -1,0 +1,25 @@
+{
+  "name": "nb-speak",
+  "description": "Stop AI agents from dumping raw Markdown pipe tables and 250-word essays into mobile IM channels. Bundles the chat-human skill and nb-speak MCP server.",
+  "version": "0.2.0",
+  "author": {
+    "name": "NB-Corp",
+    "url": "https://github.com/NB-Corp"
+  },
+  "homepage": "https://nb-corp.github.io/nb-speak/",
+  "repository": "https://github.com/NB-Corp/nb-speak",
+  "license": "MIT",
+  "keywords": [
+    "im",
+    "chat-human",
+    "telegram",
+    "whatsapp",
+    "mcp",
+    "markdown-tables",
+    "agent-skills"
+  ],
+  "skills": [
+    "./skills/chat-human"
+  ],
+  "mcpServers": "./.mcp.json"
+}

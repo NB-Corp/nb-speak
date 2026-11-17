@@ -2,9 +2,9 @@
 /**
  * Zero-dependency build script using Node >=22.19 built-in `stripTypeScriptTypes`.
  * 1. Compiles `packages/core/src/*.ts` -> `packages/core/dist/*.js`
- * 2. Compiles `packages/dsh-plugin/src/*.ts` -> `packages/dsh-plugin/dist/*.js`
- * 3. Emits browser-safe `docs/assets/nb-speak-browser.js` directly from `packages/core/src/{protocol,lint,parser}.ts`
- *    so the Web Playground runs the exact same production engine with zero duplicate mock logic.
+ * 2. Compiles `packages/{dsh-plugin,openclaw-plugin,mcp-server,koishi-plugin}/src/*.ts` -> `dist/*.js`
+ * 3. Syncs canonical `bubble_lint.py`, `formatter.py`, and `skills/chat-human` into AstrBot, LangBot, and NoneBot2 integrations
+ * 4. Emits browser-safe `docs/assets/nb-speak-browser.js` directly from `packages/core/src/{protocol,lint,parser,format}.ts`
  */
 import fs from 'node:fs';
 import { stripTypeScriptTypes } from 'node:module';
@@ -67,14 +67,14 @@ function buildDshClientBundle() {
 
 function buildCoreSingleFileSource() {
   const coreSrc = path.join(ROOT, 'packages', 'core', 'src');
-  const files = ['protocol.ts', 'lint.ts', 'parser.ts'];
+  const files = ['protocol.ts', 'lint.ts', 'parser.ts', 'format.ts'];
   const chunks = [
-    '// Auto-generated from @nb-corp/nb-speak packages/core/src/{protocol,lint,parser}.ts — DO NOT HAND-EDIT',
+    '// Auto-generated from @nb-corp/nb-speak packages/core/src/{protocol,lint,parser,format}.ts — DO NOT HAND-EDIT',
   ];
   for (const name of files) {
     const raw = fs.readFileSync(path.join(coreSrc, name), 'utf8');
     const stripped = stripTypeScriptTypes(raw, { mode: 'strip' });
-    // Remove relative `./*.ts` imports since the three modules are concatenated in dependency order
+    // Remove relative `./*.ts` imports since the four modules are concatenated in dependency order
     const withoutLocalImports = stripped.replace(/^\s*import\s+[\s\S]*?from\s+['"]\.\/[^'"]+['"];?\s*$/gm, '');
     chunks.push(`// --- ${name} ---\n${withoutLocalImports.trim()}`);
   }
@@ -93,49 +93,81 @@ function buildBrowserEngine() {
   }
 }
 
-function buildOpenClawPlugin() {
-  const ocRoot = path.join(ROOT, 'packages', 'openclaw-plugin');
-  const ocSrc = path.join(ocRoot, 'src');
-  const ocDist = path.join(ocRoot, 'dist');
-  if (!fs.existsSync(ocSrc)) return 0;
+function buildStandaloneCoreConsumerPackage(pkgDirName, { syncSkill = false } = {}) {
+  const pkgRoot = path.join(ROOT, 'packages', pkgDirName);
+  const pkgSrc = path.join(pkgRoot, 'src');
+  const pkgDist = path.join(pkgRoot, 'dist');
+  if (!fs.existsSync(pkgSrc)) return 0;
 
-  fs.mkdirSync(ocDist, { recursive: true });
-  fs.writeFileSync(path.join(ocDist, 'core.js'), buildCoreSingleFileSource(), 'utf8');
+  fs.mkdirSync(pkgDist, { recursive: true });
+  fs.writeFileSync(path.join(pkgDist, 'core.js'), buildCoreSingleFileSource(), 'utf8');
 
   let count = 0;
-  for (const entry of fs.readdirSync(ocSrc, { withFileTypes: true })) {
+  for (const entry of fs.readdirSync(pkgSrc, { withFileTypes: true })) {
     if (!entry.isFile() || !entry.name.endsWith('.ts')) continue;
-    const tsCode = fs.readFileSync(path.join(ocSrc, entry.name), 'utf8');
+    const tsCode = fs.readFileSync(path.join(pkgSrc, entry.name), 'utf8');
     const jsRaw = stripTypeScriptTypes(tsCode, { mode: 'strip' });
     const jsCode = jsRaw
-      .replace(/(from\s+['"])\.\.\/\.\.\/core\/src\/(?:protocol|lint|parser)\.ts(['"])/g, '$1./core.js$2')
+      .replace(/(from\s+['"])\.\.\/\.\.\/core\/src\/(?:protocol|lint|parser|format)\.ts(['"])/g, '$1./core.js$2')
       .replace(/(from\s+['"]\.\/[^'"]+)\.ts(['"])/g, '$1.js$2');
-    fs.writeFileSync(path.join(ocDist, entry.name.replace(/\.ts$/, '.js')), jsCode, 'utf8');
+    fs.writeFileSync(path.join(pkgDist, entry.name.replace(/\.ts$/, '.js')), jsCode, 'utf8');
     count += 1;
   }
 
-  // Sync canonical chat-human skill into OpenClaw plugin bundle
-  const skillSrc = path.join(ROOT, 'skills', 'chat-human');
-  const skillDest = path.join(ocRoot, 'skills', 'chat-human');
-  if (fs.existsSync(skillSrc)) {
-    fs.rmSync(skillDest, { recursive: true, force: true });
-    copyDirRecursive(skillSrc, skillDest);
+  if (syncSkill) {
+    const skillSrc = path.join(ROOT, 'skills', 'chat-human');
+    const skillDest = path.join(pkgRoot, 'skills', 'chat-human');
+    if (fs.existsSync(skillSrc)) {
+      fs.rmSync(skillDest, { recursive: true, force: true });
+      copyDirRecursive(skillSrc, skillDest);
+    }
   }
   return count;
 }
 
-function syncAstrBotPluginAssets() {
-  const astrRoot = path.join(ROOT, 'integrations', 'astrbot_plugin_nb_speak');
-  if (!fs.existsSync(astrRoot)) return;
+function syncPythonIntegrations() {
   const lintSrc = path.join(ROOT, 'skills', 'chat-human', 'scripts', 'bubble_lint.py');
-  if (fs.existsSync(lintSrc)) {
-    fs.copyFileSync(lintSrc, path.join(astrRoot, 'bubble_lint.py'));
-  }
   const skillMdSrc = path.join(ROOT, 'skills', 'chat-human', 'SKILL.md');
-  if (fs.existsSync(skillMdSrc)) {
-    const astrSkillDir = path.join(astrRoot, 'skills', 'chat-human');
-    fs.mkdirSync(astrSkillDir, { recursive: true });
-    fs.copyFileSync(skillMdSrc, path.join(astrSkillDir, 'SKILL.md'));
+  const astrRoot = path.join(ROOT, 'integrations', 'astrbot_plugin_nb_speak');
+  const formatterSrc = path.join(astrRoot, 'formatter.py');
+
+  // 1. AstrBot plugin
+  if (fs.existsSync(astrRoot)) {
+    if (fs.existsSync(lintSrc)) {
+      fs.copyFileSync(lintSrc, path.join(astrRoot, 'bubble_lint.py'));
+    }
+    if (fs.existsSync(skillMdSrc)) {
+      const astrSkillDir = path.join(astrRoot, 'skills', 'chat-human');
+      fs.mkdirSync(astrSkillDir, { recursive: true });
+      fs.copyFileSync(skillMdSrc, path.join(astrSkillDir, 'SKILL.md'));
+    }
+  }
+
+  // 2. LangBot v4+ plugin (shares canonical bubble_lint.py + formatter.py)
+  const langbotRoot = path.join(ROOT, 'integrations', 'langbot_plugin_nb_speak');
+  if (fs.existsSync(langbotRoot)) {
+    if (fs.existsSync(lintSrc)) {
+      fs.copyFileSync(lintSrc, path.join(langbotRoot, 'bubble_lint.py'));
+    }
+    if (fs.existsSync(formatterSrc)) {
+      fs.copyFileSync(formatterSrc, path.join(langbotRoot, 'formatter.py'));
+    }
+    if (fs.existsSync(skillMdSrc)) {
+      const lbSkillDir = path.join(langbotRoot, 'skills', 'chat-human');
+      fs.mkdirSync(lbSkillDir, { recursive: true });
+      fs.copyFileSync(skillMdSrc, path.join(lbSkillDir, 'SKILL.md'));
+    }
+  }
+
+  // 3. NoneBot2 plugin (shares canonical bubble_lint.py + formatter.py inside package dir)
+  const nonebotPkgDir = path.join(ROOT, 'integrations', 'nonebot_plugin_nb_speak', 'nonebot_plugin_nb_speak');
+  if (fs.existsSync(nonebotPkgDir)) {
+    if (fs.existsSync(lintSrc)) {
+      fs.copyFileSync(lintSrc, path.join(nonebotPkgDir, 'bubble_lint.py'));
+    }
+    if (fs.existsSync(formatterSrc)) {
+      fs.copyFileSync(formatterSrc, path.join(nonebotPkgDir, 'formatter.py'));
+    }
   }
 }
 
@@ -155,6 +187,8 @@ const webOnly = process.argv.includes('--web-only');
 let coreCount = 0;
 let dshCount = 0;
 let openClawCount = 0;
+let mcpCount = 0;
+let koishiCount = 0;
 if (!webOnly) {
   coreCount = compileDir(
     path.join(ROOT, 'packages', 'core', 'src'),
@@ -165,8 +199,10 @@ if (!webOnly) {
     path.join(ROOT, 'packages', 'dsh-plugin', 'dist'),
   );
   buildDshClientBundle();
-  openClawCount = buildOpenClawPlugin();
-  syncAstrBotPluginAssets();
+  openClawCount = buildStandaloneCoreConsumerPackage('openclaw-plugin', { syncSkill: true });
+  mcpCount = buildStandaloneCoreConsumerPackage('mcp-server', { syncSkill: true });
+  koishiCount = buildStandaloneCoreConsumerPackage('koishi-plugin', { syncSkill: false });
+  syncPythonIntegrations();
 }
 buildBrowserEngine();
 copyDirRecursive(path.join(ROOT, 'apps', 'web', 'src'), path.join(ROOT, 'docs'));
@@ -180,5 +216,5 @@ for (const geoName of ['llms.txt', 'llms-full.txt']) {
 console.log(
   webOnly
     ? 'Synced browser engine and apps/web/src -> docs/ (--web-only).'
-    : `Built @nb-corp/nb-speak (${coreCount} files), @nb-corp/nb-speak-dsh (${dshCount} files), @nb-corp/nb-speak-openclaw (${openClawCount} files), and synced docs/.`,
+    : `Built @nb-corp/nb-speak (${coreCount}), dsh (${dshCount}), openclaw (${openClawCount}), mcp (${mcpCount}), koishi (${koishiCount}), and synced Python/docs.`,
 );

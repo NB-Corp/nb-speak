@@ -4,10 +4,10 @@
 
 ## Quickstart Surfaces (Ordered by Developer Workflow)
 
-1. `npx skills add NB-Corp/nb-speak --global --agent '*'` (or `npx skills add NB-Corp/chat-human`) — Install the standalone `chat-human` Agent Skill (`v0.2.0`) into Claude Code, Codex, Cursor, OpenClaw, Kiki, and 70+ `skills.sh` runtimes.
-2. `npx --yes github:NB-Corp/nb-speak openclaw --apply` — Zero-clone installation of `@nb-corp/nb-speak-openclaw` (`openclaw.plugin.json`), adding `send_bubble` + `send_artifact` (`toolContext.delivery?.send`), `before_prompt_build`, and a deterministic `reply_payload_sending` / `message_sending` gate that fixes raw mobile pipe tables (`openclaw#36323`) and 250-word essay regressions on Telegram, WhatsApp, Discord, and Signal.
-3. `git clone --depth 1 https://github.com/NB-Corp/astrbot_plugin_nb_speak <AstrBot>/data/plugins/astrbot_plugin_nb_speak` (or paste `https://github.com/NB-Corp/astrbot_plugin_nb_speak` directly in AstrBot WebUI Plugin Manager) — Install the native AstrBot v4+ `Star` plugin (`astrbot_plugin_nb_speak`), eliminating AstrBot's 150-char `segmented_reply` cliff (`AstrBot#8614`), protecting fenced code blocks from regex slicing, and converting pipe tables into QQ/WeChat mobile KV cards.
-4. `npx --yes github:NB-Corp/nb-speak serve --port 18090 --upstream-url https://api.deepseek.com/v1` — Start the zero-dependency OpenAI-compatible HTTP/SSE bridge (`@nb-corp/nb-speak`) in front of DeepSeek, OpenAI, Claude, Gemini, or local `llama-server`; also supports DeepSeek Harness (`DSH`) via `@nb-corp/nb-speak-dsh` (`npx --yes github:NB-Corp/nb-speak-dsh --apply --profile web`).
+1. `npx skills add NB-Corp/nb-speak --global --agent '*'` (or `npx skills add NB-Corp/chat-human`) — Install the standalone `chat-human` Agent Skill (`v0.2.0`) into Claude Code, Codex, Cursor, OpenClaw, Kiki, and 70+ `skills.sh` runtimes; Claude Code users can also install natively via `/plugin marketplace add NB-Corp/nb-speak` -> `/plugin install nb-speak@nb-corp`.
+2. `npx --yes github:NB-Corp/nb-speak mcp` — Start the zero-dependency MCP (`Model Context Protocol`) `stdio` server (`@nb-corp/nb-speak-mcp`, official Registry ID `io.github.NB-Corp/nb-speak`, `server.json` + `glama.json` + `smithery.yaml`) for Cursor, Windsurf, Cherry Studio, Cline, Roo Code, Goose, LibreChat, LobeChat, Zed, and Raycast.
+3. `npx --yes github:NB-Corp/nb-speak openclaw --apply` — Zero-clone installation of `@nb-corp/nb-speak-openclaw` (`openclaw.plugin.json`), adding `send_bubble` + `send_artifact` (`toolContext.delivery?.send`), `before_prompt_build`, and a deterministic `reply_payload_sending` / `message_sending` gate that fixes raw mobile pipe tables (`openclaw#36323`) and 250-word essay regressions on Telegram, WhatsApp, Discord, and Signal.
+4. `https://github.com/NB-Corp/astrbot_plugin_nb_speak` & `https://github.com/NB-Corp/langbot_plugin_nb_speak` — Native **AstrBot v4+** (`astrbot_plugin_nb_speak`) and **LangBot v4+** (`langbot_plugin_nb_speak`) plugins for QQ, WeChat, Feishu, DingTalk, and Telegram, plus **Koishi** (`koishi-plugin-nb-speak`), **NoneBot2** (`nonebot-plugin-nb-speak`), **OpenWebUI** (`integrations/openwebui/nb_speak_filter.py`), and the OpenAI/SSE HTTP bridge (`nb-speak serve`).
 
 ## Documentation & Canonical Resources
 
@@ -22,4 +22,4 @@
 
 ## Keywords & Discovery Topics
 
-Personal Agent, OpenClaw plugin, ClawHub, AstrBot plugin, Telegram bot humanizer, WhatsApp agent bubbles, WeChat QQ bot segmented reply, Claude Code skill, skills.sh, OpenAI SSE bridge, IM bubble protocol, Markdown pipe table gate, bubble_lint.
+Personal Agent, OpenClaw plugin, ClawHub, AstrBot plugin, LangBot plugin, Koishi plugin, NoneBot2 plugin, MCP server, Claude Code plugin marketplace, OpenWebUI filter, Telegram bot humanizer, WhatsApp agent bubbles, WeChat QQ bot segmented reply, skills.sh, OpenAI SSE bridge, IM bubble protocol, Markdown pipe table gate, bubble_lint.

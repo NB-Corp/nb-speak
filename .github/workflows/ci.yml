@@ -29,11 +29,26 @@ jobs:
       - name: Run @nb-corp/nb-speak-openclaw plugin tests
         run: node --test packages/openclaw-plugin/tests/*.test.ts
 
+      - name: Run @nb-corp/nb-speak-mcp server tests
+        run: node --test packages/mcp-server/tests/*.test.ts
+
+      - name: Run koishi-plugin-nb-speak tests
+        run: node --test packages/koishi-plugin/tests/*.test.ts
+
       - name: Run @nb-corp/nb-speak-dsh plugin tests
         run: node --test packages/dsh-plugin/tests/*.test.ts
 
       - name: Run astrbot_plugin_nb_speak Python tests
         run: python -B -m unittest discover -s integrations/astrbot_plugin_nb_speak/tests -v
+
+      - name: Run langbot_plugin_nb_speak Python tests
+        run: python -B -m unittest discover -s integrations/langbot_plugin_nb_speak/tests -v
+
+      - name: Run nonebot_plugin_nb_speak Python tests
+        run: python -B -m unittest discover -s integrations/nonebot_plugin_nb_speak/tests -v
+
+      - name: Run OpenWebUI Filter Python tests
+        run: python -B -m unittest discover -s integrations/openwebui/tests -v
 
       - name: Run chat-human Python stdlib tests
         run: python -B -m unittest discover -s tests -v

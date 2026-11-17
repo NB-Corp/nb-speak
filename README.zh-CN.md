@@ -13,7 +13,7 @@
 [![License: MIT](https://img.shields.io/badge/license-MIT-2d4b35?style=flat-square)](LICENSE)
 [![Playground](https://img.shields.io/badge/playground-在线交互试玩-2d4b35?style=flat-square)](https://nb-corp.github.io/nb-speak/zh/)
 
-[**在线同屏对比舞台**](https://nb-corp.github.io/nb-speak/zh/) · [30 秒极速上手](#30-秒极速上手) · [OpenClaw & AstrBot 原生插件](#personal-agent-原生插件openclaw-与-astrbot) · [协议与 SSE 桥接](#架构流程与协议契约) · [bubble_lint 规范](#确定性门禁-bubble_lint-8-大规则规范) · [四大同题对决](#同一模型两种体感四大实测同题对决) · [llms.txt](llms.txt)
+[**在线同屏对比舞台**](https://nb-corp.github.io/nb-speak/zh/) · [30 秒极速上手](#30-秒极速上手) · [全生态插件速查表](#全生态插件与官方市场接入速查表) · [协议与 SSE 桥接](#架构流程与协议契约) · [bubble_lint 规范](#确定性门禁-bubble_lint-8-大规则规范) · [四大同题对决](#同一模型两种体感四大实测同题对决) · [llms.txt](llms.txt)
 
 [English](README.md) · **简体中文**
 
@@ -70,24 +70,35 @@ npx --yes github:NB-Corp/nb-speak openclaw --uninstall
 git clone --depth 1 https://github.com/NB-Corp/astrbot_plugin_nb_speak <AstrBot>/data/plugins/astrbot_plugin_nb_speak
 ```
 
-### 4. OpenAI / SSE 通用桥接网关、CLI 与其他客户端（OpenWebUI、LobeChat、`nb-im`、DSH）
+### 4. 标准 MCP 服务端、Claude Code 插件市场与 OpenAI / SSE 桥接网关
 
 ```bash
-# 1. 在 DeepSeek / OpenAI / 本地 llama-server 前启动零依赖桥接服务 (http://127.0.0.1:18090)
-#    （默认纯文字短气泡 + 独立代码/表格卡，enableVoiceNotes = false）
-NB_SPEAK_API_KEY="sk-..." npx --yes github:NB-Corp/nb-speak serve \
-  --port 18090 \
-  --upstream-url https://api.deepseek.com/v1 \
-  --model deepseek-chat \
-  --persona calm_sre
+# 1. 标准 MCP stdio 服务端（支持 Cherry Studio、Cursor、Windsurf、Cline、Roo Code、Goose、Zed、Raycast）
+npx --yes github:NB-Corp/nb-speak mcp
 
-# 2. 对外发载荷执行确定性 bubble_lint 门禁校验（0 告警返回退出码 0）
-echo '{"bubbles":["错误率 0.02% 没动，p99 降到 38ms","连接池水位也稳，直接推全量吧"]}' \
-  | node packages/core/bin/nb-speak.mjs lint --json
+# 2. Claude Code 原生插件市场（同时挂载 chat-human 技能与 MCP 服务）
+#    在 Claude Code 内运行：/plugin marketplace add NB-Corp/nb-speak && /plugin install nb-speak@nb-corp
 
-# 3. 其他支持的客户端 —— 例如一键挂载至 DeepSeek Harness (DSH) WebUI：
-npx --yes github:NB-Corp/nb-speak-dsh --apply --profile web
+# 3. 零依赖 OpenAI / SSE 桥接服务 (http://127.0.0.1:18090，默认 enableVoiceNotes = false)
+NB_SPEAK_API_KEY="sk-..." npx --yes github:NB-Corp/nb-speak serve --port 18090 --upstream-url https://api.deepseek.com/v1
 ```
+
+### 全生态插件与官方市场接入速查表
+
+10 大主流入口同源复用确定性拆表引擎、代码块防切盾牌与 8 规则 `bubble_lint`（全栈默认 `enableVoiceNotes = false` 关闭语音条）：
+
+| 生态 / 客户端 | 目录或包名 | 对应官方市场 / 索引标识 | 一行接入方式 |
+| --- | --- | --- | --- |
+| **skills.sh**（70+ 编码助手） | [`skills/chat-human`](skills/chat-human) | `skills.sh` · `NB-Corp/chat-human` | `npx skills add NB-Corp/chat-human --global --agent '*'` |
+| **Claude Code** | [`.claude-plugin/`](.claude-plugin) | Claude Plugin Marketplaces | `/plugin marketplace add NB-Corp/nb-speak` -> `/plugin install nb-speak@nb-corp` |
+| **MCP 客户端**（Cherry / Cursor / Cline） | [`packages/mcp-server`](packages/mcp-server) | `io.github.NB-Corp/nb-speak`（`server.json` · Glama · Smithery） | `npx -y github:NB-Corp/nb-speak mcp` |
+| **OpenClaw**（TG / WhatsApp / Discord） | [`packages/openclaw-plugin`](packages/openclaw-plugin) | ClawHub（`@nb-corp/nb-speak-openclaw`） | `npx --yes github:NB-Corp/nb-speak openclaw --apply` |
+| **AstrBot**（QQ / 微信 / 飞书） | [`integrations/astrbot_plugin_nb_speak`](integrations/astrbot_plugin_nb_speak) | AstrBot 插件市场（`NB-Corp/astrbot_plugin_nb_speak`） | 面板粘贴 `https://github.com/NB-Corp/astrbot_plugin_nb_speak` |
+| **LangBot v4+**（微信 / QQ / 钉钉） | [`integrations/langbot_plugin_nb_speak`](integrations/langbot_plugin_nb_speak) | LangBot Space（`NB-Corp/langbot_plugin_nb_speak`） | 面板粘贴 `https://github.com/NB-Corp/langbot_plugin_nb_speak` |
+| **Koishi v4**（OneBot / Satori / Discord） | [`packages/koishi-plugin`](packages/koishi-plugin) | Koishi 官方市场（`koishi-plugin-nb-speak`） | `npm install koishi-plugin-nb-speak` |
+| **NoneBot2**（OneBot V11/V12 / TG / 飞书） | [`integrations/nonebot_plugin_nb_speak`](integrations/nonebot_plugin_nb_speak) | NoneBot 商店（`nonebot-plugin-nb-speak`） | `nb plugin install nonebot-plugin-nb-speak` |
+| **OpenWebUI** | [`integrations/openwebui/nb_speak_filter.py`](integrations/openwebui/nb_speak_filter.py) | OpenWebUI Community Functions (`Filter`) | 在 **工作空间 -> 函数** 导入 `nb_speak_filter.py` |
+| **OpenAI / SSE 桥接与 DSH** | [`packages/core`](packages/core) · [`packages/dsh-plugin`](packages/dsh-plugin) | npm (`@nb-corp/nb-speak`) · `NB-Corp/nb-speak-dsh` | `npx --yes github:NB-Corp/nb-speak serve --port 18090` |
 
 ---
 

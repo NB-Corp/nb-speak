@@ -24,10 +24,6 @@
   "reload": {
     "turnHandover": true
   },
-  "recommendedPrompts": [
-    "Summarize the latest deploy metrics in two quick mobile chat beats.",
-    "Compare Postgres vs SQLite for our cron worker without raw pipe tables."
-  ],
   "uiHints": {
     "persona": {
       "label": "Active Persona Layer"

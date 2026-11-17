@@ -32,6 +32,7 @@ function printHelp()       {
 
 Usage:
   nb-speak openclaw [options]    Install, preview, or uninstall the native OpenClaw plugin (~/.openclaw)
+  nb-speak mcp [options]         Start the zero-dependency MCP (Model Context Protocol) stdio server
   nb-speak serve [options]       Start the OpenAI-compatible HTTP/SSE bridge server
   nb-speak lint [options]        Deterministically lint IM bubbles, plain beats & voice notes
   nb-speak parse [options]       Normalize a raw LLM completion or Markdown wall into bubbles & artifacts
@@ -68,6 +69,29 @@ function parseBoolEnv(raw                    )          {
 }
 
 export async function runCli(argv                   )                  {
+  if (argv[0] === 'mcp') {
+    const cliDir = path.dirname(fileURLToPath(import.meta.url));
+    const mcpDist = path.resolve(cliDir, '../../mcp-server/dist/server.js');
+    const mcpSrc = path.resolve(cliDir, '../../mcp-server/src/server.ts');
+    const mcpEntry = fs.existsSync(mcpDist) ? mcpDist : mcpSrc;
+    if (!fs.existsSync(mcpEntry)) {
+      console.error(`MCP server entry not found at ${mcpEntry}`);
+      return 2;
+    }
+    const mcpMod = (await import(pathToFileURL(mcpEntry).href))     
+                                                                                         
+     ;
+    const handle = mcpMod.startMcpStdioServer({ argv: argv.slice(1) });
+    return await new Promise        ((resolve) => {
+      const done = () => {
+        handle.close();
+        resolve(0);
+      };
+      process.stdin.once('end', done);
+      process.stdin.once('close', done);
+    });
+  }
+
   if (argv[0] === 'openclaw') {
     const cliDir = path.dirname(fileURLToPath(import.meta.url));
     const installerPath = path.resolve(cliDir, '../../openclaw-plugin/scripts/install-openclaw.mjs');

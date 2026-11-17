@@ -20,6 +20,7 @@ const RUNTIME_ENTRIES = [
   'openclaw.plugin.json',
   'LICENSE',
   'README.md',
+  'assets',
   'dist',
   'src',
   'skills',
