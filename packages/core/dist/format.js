@@ -297,6 +297,29 @@ function cleanSingleBeat(
   return s;
 }
 
+const COMPACT_KV_CARD_LINE_RE = /^-\s+[^*#\n]{1,48}(?:\s*(?:[:：]|—)\s*[^*#\n]+)$/;
+const CLEAN_HYPHEN_BULLET_LINE_RE = /^-\s+[^*#\n]+$/;
+
+function isCompactKvCardBlock(paragraph        )          {
+  const lines = paragraph
+    .split('\n')
+    .map((ln) => ln.trim())
+    .filter(Boolean);
+  if (lines.length === 0) return false;
+  const body = /^\[[^\]\n]+\]$/.test(lines[0] ) ? lines.slice(1) : lines;
+  return body.length > 0 && body.every((ln) => COMPACT_KV_CARD_LINE_RE.test(ln));
+}
+
+function isOverflowNoteCardBlock(paragraph        , existingBeatsCount        , maxBubbles        )          {
+  if (existingBeatsCount === 0) return false;
+  const lines = paragraph
+    .split('\n')
+    .map((ln) => ln.trim())
+    .filter(Boolean);
+  if (lines.length < 2) return false;
+  return existingBeatsCount + lines.length > maxBubbles && lines.every((ln) => CLEAN_HYPHEN_BULLET_LINE_RE.test(ln));
+}
+
 function splitLongParagraphIntoBeats(paragraph        )           {
   const trimmed = paragraph.trim();
   if (!trimmed) return [];
@@ -413,9 +436,9 @@ export function transformOutboundText(rawText        , options                  
     },
   );
 
-  // 2. Extract raw Markdown pipe tables (`openclaw#36323`)
+  // 2. Extract raw Markdown pipe tables (`openclaw#36323`) without swallowing blank lines between separate tables
   working = working.replace(
-    /(?:^|\n)((?:\|[^\n]+\|\s*\n)\|[\s:\-|]+\|\s*\n(?:\|[^\n]+\|\s*(?:\n|$))+)/g,
+    /(?:^|\n)((?:\|[^\n]+\|[ \t]*\n)\|[ \t:\-|]+\|[ \t]*\n(?:\|[^\n]+\|[ \t]*(?:\n|$))+)/g,
     (_m, tableBlock        ) => {
       const content = tableBlock.trim();
       if (!content) return '\n\n';
@@ -429,6 +452,26 @@ export function transformOutboundText(rawText        , options                  
       return `\n\n@@NB_SPEAK_ART_${slot}@@\n\n`;
     },
   );
+
+  // 2.5 Shield already-formatted compact KV cards in place so document artifact order stays 100% idempotent
+  working = working
+    .split(/\n\s*\n+/)
+    .map((block) => {
+      const trimmedBlock = block.trim();
+      if (!trimmedBlock || /^@@NB_SPEAK_ART_\d+@@$/.test(trimmedBlock)) return block;
+      if (isCompactKvCardBlock(trimmedBlock)) {
+        const slot = rawPool.length;
+        rawPool.push({
+          title: `card-${slot + 1}.md`,
+          kind: 'markdown',
+          language: 'markdown',
+          content: trimmedBlock,
+        });
+        return `@@NB_SPEAK_ART_${slot}@@`;
+      }
+      return block;
+    })
+    .join('\n\n');
 
   // 3. Collect extracted artifacts in exact document appearance order and remove placeholders
   const artifacts                     = [];
@@ -446,6 +489,15 @@ export function transformOutboundText(rawText        , options                  
 
   const rawBeats           = [];
   for (const para of paragraphs) {
+    if (isOverflowNoteCardBlock(para, rawBeats.length, maxBubbles)) {
+      artifacts.push({
+        title: `details-${artifacts.length + 1}.md`,
+        kind: 'markdown',
+        language: 'markdown',
+        content: para,
+      });
+      continue;
+    }
     const subBeats = splitLongParagraphIntoBeats(para);
     for (const beat of subBeats) {
       const cleaned = cleanSingleBeat(beat, { stripStageBrackets, stripConciergeTail });

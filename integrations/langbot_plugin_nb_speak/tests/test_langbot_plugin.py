@@ -29,6 +29,13 @@ class _DummyPlugin:
         return dict(self._cfg)
 
 
+class _DummyComp:
+    def __init__(self, comp_type: str, **kwargs: Any) -> None:
+        self.type = comp_type
+        for k, v in kwargs.items():
+            setattr(self, k, v)
+
+
 class _DummyEvent:
     def __init__(self, **kwargs: Any) -> None:
         for k, v in kwargs.items():
@@ -36,15 +43,21 @@ class _DummyEvent:
 
 
 class _DummyEventContext:
-    def __init__(self, event: Any) -> None:
+    def __init__(self, event: Any, *, fail_on_reply_index: int | None = None) -> None:
         self.event = event
         self.prevented = False
         self.replied_chains: list[Any] = []
+        self._fail_on_reply_index = fail_on_reply_index
+        self._calls = 0
 
     def prevent_default(self) -> None:
         self.prevented = True
 
     async def reply(self, message_chain: Any, quote_origin: bool = False) -> None:
+        idx = self._calls
+        self._calls += 1
+        if self._fail_on_reply_index is not None and idx == self._fail_on_reply_index:
+            raise RuntimeError("Simulated Gewechat rate limit")
         self.replied_chains.append((message_chain, quote_origin))
 
 
@@ -59,10 +72,10 @@ class LangBotPluginTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("attr: NbSpeakPlugin", manifest_text)
         self.assertIn("sharedRuntime: shared-runtime-v1", manifest_text)
         self.assertIn("componentModel: stateless-v1", manifest_text)
-        # Ensure enable_voice_notes defaults strictly to false
         idx = manifest_text.index("name: enable_voice_notes")
         block = manifest_text[idx : idx + 450]
         self.assertIn("default: false", block)
+        self.assertIn("name: tts_timeout_sec", manifest_text)
 
         self.assertIn("kind: EventListener", listener_yaml)
         self.assertIn("attr: DefaultEventListener", listener_yaml)
@@ -72,29 +85,41 @@ class LangBotPluginTests(unittest.IsolatedAsyncioTestCase):
         plugin = NbSpeakPlugin()
         self.assertEqual(plugin.get_config(), {})
 
-    async def test_prompt_preprocessing_injects_once_without_voice_notes_by_default(self) -> None:
+    async def test_prompt_preprocessing_injects_once_and_handles_multimodal_content_lists(self) -> None:
         listener = DefaultEventListener()
         listener.plugin = _DummyPlugin({"persona_preset": "calm_sre", "enable_voice_notes": False})
 
-        ev = _DummyEvent(default_prompt=[], prompt=[])
+        mm_msg = _DummyEvent(role="user", content=[{"type": "image_url", "image_url": "data:image/png;base64,AA=="}])
+        ev = _DummyEvent(default_prompt=[mm_msg], prompt=[])
         ctx = _DummyEventContext(ev)
         await listener.handle_prompt_preprocessing(ctx)
-        self.assertEqual(len(ev.default_prompt), 1)
-        self.assertIn("[nb-speak/1 · chat-human]", ev.default_prompt[0].content)
-        self.assertNotIn("<voice_note>", ev.default_prompt[0].content)
+        self.assertEqual(len(ev.default_prompt), 2)
+        self.assertIn("[nb-speak/1 · chat-human]", ev.default_prompt[1].content)
+        self.assertNotIn("<voice_note>", ev.default_prompt[1].content)
 
         # Idempotent on repeated invocation
         await listener.handle_prompt_preprocessing(ctx)
-        self.assertEqual(len(ev.default_prompt), 1)
+        self.assertEqual(len(ev.default_prompt), 2)
 
-    async def test_normal_message_responded_splits_wechat_pipe_table_and_protects_code_fence(self) -> None:
+    async def test_normal_message_responded_splits_wechat_pipe_table_preserves_rich_chain_and_recovers_on_failure(self) -> None:
         delays: list[float] = []
 
         async def fake_sleep(sec: float) -> None:
             delays.append(sec)
 
         listener = DefaultEventListener(sleep_fn=fake_sleep)
-        listener.plugin = _DummyPlugin({"platform_mode": "auto", "paced_delivery": True, "enable_voice_notes": False})
+        listener.plugin = _DummyPlugin(
+            {
+                "platform_mode": "auto",
+                "paced_delivery": True,
+                "enable_voice_notes": False,
+            }
+        )
+
+        # 1. Rich reply_message_chain containing Quote + At + Image alongside response_text with pipe table + SQL
+        quote_comp = _DummyComp("Quote", id="q_1")
+        at_comp = _DummyComp("At", target="u_88")
+        img_comp = _DummyComp("Image", url="https://example.com/chart.png")
 
         raw_wall = (
             "（叹气）排查完数据库索引了。\n\n"
@@ -108,20 +133,52 @@ class LangBotPluginTests(unittest.IsolatedAsyncioTestCase):
             launcher_type="group",
             prefix="",
             response_text=raw_wall,
-            reply_message_chain=None,
+            reply_message_chain=[quote_comp, at_comp, img_comp],
         )
         ctx = _DummyEventContext(ev)
         await listener.handle_normal_message_responded(ctx)
 
         self.assertTrue(ctx.prevented)
         self.assertIsNone(ev.reply_message_chain)
-        self.assertEqual(len(ctx.replied_chains), 3)
+        self.assertEqual(len(ctx.replied_chains), 4)
 
-        sent_texts = [chain[0][0].text for chain in ctx.replied_chains]
-        self.assertEqual(sent_texts[0], "排查完数据库索引了")
-        self.assertIn("- 订单库：18ms", sent_texts[1])
-        self.assertIn("```sql\nSELECT id FROM orders WHERE status = 'paid';\n```", sent_texts[2])
+        # Bubble 1 carries Quote + At + first text beat
+        b1_chain = ctx.replied_chains[0][0]
+        self.assertEqual([c.type for c in b1_chain], ["Quote", "At", "Plain"])
+        self.assertEqual(b1_chain[2].text, "排查完数据库索引了")
+        # Bubble 2 & 3 carry KV card and SQL fence without duplicating Quote/At
+        self.assertIn("- 订单库：18ms", ctx.replied_chains[1][0][0].text)
+        self.assertIn("```sql\nSELECT id FROM orders WHERE status = 'paid';\n```", ctx.replied_chains[2][0][0].text)
+        # Bubble 4 preserves trailing Image component
+        self.assertEqual(ctx.replied_chains[3][0][0].type, "Image")
         self.assertEqual(len(delays), 3)
+
+        # 2. Failure on Bubble 0 leaves default host pipeline intact (prevented=False, zero message loss)
+        ev_fail0 = _DummyEvent(
+            launcher_type="group",
+            prefix="",
+            response_text="第一句\n\n第二句",
+            reply_message_chain=None,
+        )
+        ctx_fail0 = _DummyEventContext(ev_fail0, fail_on_reply_index=0)
+        await listener.handle_normal_message_responded(ctx_fail0)
+        self.assertFalse(ctx_fail0.prevented)
+
+        # 3. Failure on Bubble 2 preserves unsent tail + media in ev.reply_message_chain
+        ev_fail1 = _DummyEvent(
+            launcher_type="group",
+            prefix="",
+            response_text="第一句已送达\n\n第二句遇限流\n\n第三句收尾",
+            reply_message_chain=[img_comp],
+        )
+        ctx_fail1 = _DummyEventContext(ev_fail1, fail_on_reply_index=1)
+        await listener.handle_normal_message_responded(ctx_fail1)
+        self.assertTrue(ctx_fail1.prevented)
+        self.assertEqual(len(ctx_fail1.replied_chains), 1)
+        self.assertIsNotNone(ev_fail1.reply_message_chain)
+        self.assertIn("第二句遇限流", ev_fail1.reply_message_chain[0].text)
+        self.assertIn("第三句收尾", ev_fail1.reply_message_chain[0].text)
+        self.assertEqual(ev_fail1.reply_message_chain[1].type, "Image")
 
 
 if __name__ == "__main__":

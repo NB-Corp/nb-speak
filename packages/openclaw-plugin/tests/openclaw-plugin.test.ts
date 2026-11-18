@@ -288,3 +288,136 @@ test('install-openclaw.mjs persists standalone bundle, survives source removal, 
     fs.rmSync(tmpRoot, { recursive: true, force: true });
   }
 });
+
+test('OpenClaw send_bubble/send_artifact survive missing or throwing delivery.send, enforce TTS timeout <=8s, and prevent double hook splitting', async () => {
+  const hooks = new Map<string, (event: any, ctx?: any) => any>();
+  const tools = new Map<string, { factory: any; options: any }>();
+
+  const plugin = createOpenClawSpeakPlugin({
+    sleepImpl: async () => {},
+    fetchImpl: ((_url: string | URL, init?: RequestInit) =>
+      new Promise<Response>((_resolve, reject) => {
+        init?.signal?.addEventListener('abort', () => reject(new Error('TTS Aborted on timeout')));
+      })) as typeof fetch,
+  });
+
+  plugin.register({
+    pluginConfig: {
+      enableVoiceNotes: true,
+      ttsBaseUrl: 'http://127.0.0.1:19999/v1',
+      ttsTimeoutMs: 99999, // Clamped to <= 8000ms; test below also verifies fast abort
+    },
+    on(name, handler) {
+      hooks.set(name, handler);
+    },
+    registerTool(factory, options) {
+      tools.set(String(options?.name), { factory, options });
+    },
+  });
+
+  assert.equal(resolveOpenClawSpeakConfig({ ttsTimeoutMs: 99999 }).ttsTimeoutMs, 8000);
+
+  // 1. Mid-turn throw in toolContext.delivery.send preserves unsent tail without crashing execute()
+  const deliveredSoFar: string[] = [];
+  const flakyBubbleTool = tools.get('send_bubble')!.factory({
+    runId: 'run_flaky',
+    delivery: {
+      async send(payload: { text?: string }) {
+        if (deliveredSoFar.length === 1) {
+          throw new Error('Telegram 429 Too Many Requests');
+        }
+        deliveredSoFar.push(String(payload.text ?? ''));
+      },
+    },
+  });
+
+  const partialRes = await flakyBubbleTool.execute('c_flaky', {
+    bubbles: ['First bubble arrived', 'Second bubble hit rate limit', 'Third bubble recovered'],
+  });
+  assert.equal(partialRes.details.deliveredViaChannel, false);
+  assert.equal(partialRes.details.partialSentCount, 1);
+  assert.equal(partialRes.content[0].text, 'Second bubble hit rate limit\n\nThird bubble recovered');
+
+  // 2. Throwing delivery.send on send_artifact falls back cleanly to returning formattedCard
+  const flakyArtTool = tools.get('send_artifact')!.factory({
+    deliveryContext: { channel: 'whatsapp' },
+    delivery: {
+      async send() {
+        throw new Error('Direct channel send unsupported');
+      },
+    },
+  });
+  const artRes = await flakyArtTool.execute('c_art', {
+    title: 'Latency',
+    kind: 'table',
+    content: '| Node | P99 |\n|---|---|\n| Edge | 14ms |',
+  });
+  assert.equal(artRes.details.deliveredViaChannel, false);
+  assert.match(artRes.content[0].text, /- Edge: 14ms/);
+
+  // 3. Streaming partial frames are untouched, and reply_payload_sending -> message_sending never double-splits
+  const replyHook = hooks.get('reply_payload_sending')!;
+  const msgHook = hooks.get('message_sending')!;
+
+  assert.equal(
+    replyHook({ kind: 'partial', channel: 'whatsapp', payload: { text: '| A | B |\n|---|---|\n| 1 | 2 |' } }),
+    undefined,
+  );
+  assert.equal(
+    msgHook({ isPartial: true, channel: 'whatsapp', content: '| A | B |\n|---|---|\n| 1 | 2 |' }),
+    undefined,
+  );
+
+  const firstHookPass = replyHook({
+    channel: 'whatsapp',
+    payload: {
+      text: '*sighs* Rollout done.\n\n| Service | State |\n|---|---|\n| Gateway | Green |\n| Worker | Green |',
+    },
+  });
+  assert.ok(firstHookPass?.payload?.text);
+  const secondHookPass = msgHook({
+    channel: 'whatsapp',
+    content: firstHookPass.payload.text,
+  });
+  assert.equal(secondHookPass, undefined);
+
+  // 4. Hung TTS server aborts strictly via AbortSignal.timeout (500ms min clamp) without losing bubbles
+  let fastBubbleFactory: any;
+  const fastPlugin = createOpenClawSpeakPlugin({
+    sleepImpl: async () => {},
+    fetchImpl: ((_url: string | URL, init?: RequestInit) =>
+      new Promise<Response>((_resolve, reject) => {
+        init?.signal?.addEventListener('abort', () => reject(new Error('Timed out')));
+      })) as typeof fetch,
+  });
+  fastPlugin.register({
+    pluginConfig: {
+      enableVoiceNotes: true,
+      ttsBaseUrl: 'http://127.0.0.1:19999/v1',
+      ttsTimeoutMs: 500,
+    },
+    on() {},
+    registerTool(factory, options) {
+      if (options?.name === 'send_bubble') fastBubbleFactory = factory;
+    },
+  });
+
+  const hungTtsSent: Array<{ text?: string; mediaUrl?: string }> = [];
+  const hungTool = fastBubbleFactory({
+    delivery: {
+      async send(payload: { text?: string; mediaUrl?: string }) {
+        hungTtsSent.push(payload);
+      },
+    },
+  });
+  const t0 = Date.now();
+  const hungRes = await hungTool.execute('c_hung', {
+    bubbles: ['Canary looks solid'],
+    voice_note: { text: 'Spoken aside when TTS hangs' },
+  });
+  const elapsedMs = Date.now() - t0;
+  assert.ok(elapsedMs < 1500, `Expected hung TTS to abort around 500ms, took ${elapsedMs}ms`);
+  assert.equal(hungRes.details.deliveredViaChannel, true);
+  assert.equal(hungTtsSent.length, 1);
+  assert.equal(hungTtsSent[0]!.text, 'Canary looks solid');
+});

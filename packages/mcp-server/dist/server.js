@@ -174,6 +174,13 @@ export const MCP_TOOL_DEFINITIONS = [
           type: 'string',
           description: 'Optional compact heading label for key-value cards.',
         },
+        max_monospace_width: {
+          type: 'integer',
+          minimum: 24,
+          maximum: 120,
+          default: 40,
+          description: 'Maximum monospace display width before wide tables degrade to mobile key-value cards.',
+        },
       },
     },
   },
@@ -323,9 +330,11 @@ export function createMcpRequestHandler(options                   = {}) {
             },
           };
         }
+        const maxWidthRaw = Number(args.max_monospace_width ?? 40);
         const card = formatTableForChannel(args.table_markdown, {
           channel: typeof args.channel === 'string' ? args.channel : undefined,
           tableMode: normalizeTableMode(args.table_mode),
+          maxMonospaceWidth: Number.isFinite(maxWidthRaw) ? Math.max(24, Math.min(120, Math.round(maxWidthRaw))) : 40,
           title: typeof args.title === 'string' ? args.title : undefined,
         });
         return {
@@ -341,7 +350,7 @@ export function createMcpRequestHandler(options                   = {}) {
       return {
         jsonrpc: '2.0',
         id,
-        error: { code: -32601, message: `Unknown MCP tool: ${toolName}` },
+        error: { code: -32602, message: `Tool ${toolName} not found` },
       };
     }
 
@@ -453,6 +462,38 @@ export function createMcpRequestHandler(options                   = {}) {
             },
           ],
         },
+      };
+    }
+
+    if (req.method === 'resources/templates/list') {
+      return {
+        jsonrpc: '2.0',
+        id,
+        result: {
+          resourceTemplates: [],
+        },
+      };
+    }
+
+    if (req.method === 'completion/complete') {
+      return {
+        jsonrpc: '2.0',
+        id,
+        result: {
+          completion: {
+            values: [],
+            total: 0,
+            hasMore: false,
+          },
+        },
+      };
+    }
+
+    if (req.method === 'logging/setLevel') {
+      return {
+        jsonrpc: '2.0',
+        id,
+        result: {},
       };
     }
 
@@ -568,10 +609,20 @@ export function attachMcpStreams(
     drainBuffer();
   };
 
+  const onEnd = ()       => {
+    if (buffer.length > 0 && framingMode !== 'content-length') {
+      const trailing = buffer.toString('utf8');
+      buffer = Buffer.alloc(0);
+      dispatchJsonText(trailing);
+    }
+  };
+
   input.on('data', onData);
+  input.on('end', onEnd);
   return {
     close() {
       input.off('data', onData);
+      input.off('end', onEnd);
     },
   };
 }

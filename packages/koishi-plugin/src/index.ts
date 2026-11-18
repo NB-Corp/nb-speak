@@ -1,3 +1,5 @@
+import { createRequire } from 'node:module';
+import path from 'node:path';
 import { setTimeout as sleep } from 'node:timers/promises';
 import {
   buildSpeakSystemPrompt,
@@ -42,12 +44,34 @@ export interface KoishiElementLike {
   type: string;
   attrs: Record<string, unknown>;
   children?: KoishiElementLike[];
+  toString?: () => string;
+}
+
+export interface KoishiBotLike {
+  sendMessage?(
+    channelId: string,
+    fragment: string | KoishiElementLike[],
+    guildId?: unknown,
+    options?: Record<string, unknown>,
+  ): Promise<string[]>;
 }
 
 export interface KoishiSessionLike {
   platform?: string;
   channelId?: string;
+  guildId?: string;
   userId?: string;
+  quote?: { id?: string; messageId?: string; [key: string]: unknown };
+  event?: {
+    referrer?: unknown;
+    message?: {
+      quote?: { id?: string; messageId?: string; [key: string]: unknown };
+      elements?: KoishiElementLike[];
+      [key: string]: unknown;
+    };
+    [key: string]: unknown;
+  };
+  bot?: KoishiBotLike;
   elements?: KoishiElementLike[];
   content?: string;
   send?(fragment: string | KoishiElementLike[], options?: Record<string, unknown>): Promise<string[]>;
@@ -56,32 +80,115 @@ export interface KoishiSessionLike {
 export interface KoishiContextLike {
   on(event: string, listener: (...args: any[]) => unknown): () => boolean;
   sleep?(ms: number): Promise<void>;
+  logger?(name: string): { warn: (...args: unknown[]) => void };
+  i18n?: {
+    define(locale: string, dict: Record<string, unknown>): void;
+  };
   nbSpeak?: {
     formatReply: (rawText: string, platform?: string) => ReturnType<typeof transformOutboundText>;
     getSystemPrompt: () => string;
   };
 }
 
-// Optional host Koishi Schema discovery (works inside real Koishi v4 apps and zero-dep standalone tests)
-let hostSchema: any;
-try {
-  const mod = await import('koishi');
-  hostSchema = (mod as Record<string, unknown>).Schema;
-} catch {
-  hostSchema = undefined;
+export function resolveKoishiSpeakConfig(raw: KoishiSpeakConfig = {}): ResolvedKoishiSpeakConfig {
+  const p = String(raw?.persona ?? 'neutral_peer');
+  const persona: PersonaPresetId =
+    p === 'sharp_lead' || p === 'warm_companion' || p === 'calm_sre' || p === 'custom' ? p : 'neutral_peer';
+  const tm = String(raw?.tableMode ?? 'auto');
+  const tableMode: ChannelTableMode = tm === 'kv' || tm === 'code' ? tm : 'auto';
+  const width = Number(raw?.maxMonospaceWidth ?? 40);
+  const maxBubbles = Number(raw?.maxBubbles ?? 4);
+  const speed = Number(raw?.cadenceSpeed ?? 1);
+
+  return {
+    enabled: raw?.enabled !== false,
+    persona,
+    customSoul: typeof raw?.customSoul === 'string' ? raw.customSoul.trim() : '',
+    tableMode,
+    maxMonospaceWidth: Number.isFinite(width) ? Math.max(24, Math.min(120, Math.round(width))) : 40,
+    maxBubbles: Number.isFinite(maxBubbles) ? Math.max(1, Math.min(6, Math.round(maxBubbles))) : 4,
+    pacedDelivery: raw?.pacedDelivery !== false,
+    cadenceSpeed: Number.isFinite(speed) && speed > 0 ? Math.min(50, speed) : 1,
+    platforms: Array.isArray(raw?.platforms)
+      ? raw.platforms.map((item) => String(item ?? '').trim().toLowerCase()).filter(Boolean)
+      : [],
+    enableVoiceNotes: raw?.enableVoiceNotes === true,
+  };
 }
 
-function buildFallbackSchema() {
+function resolveHostKoishiBindings(): { Schema?: any; h?: any } {
+  const resolvers: NodeJS.Require[] = [];
+  try {
+    resolvers.push(createRequire(import.meta.url));
+  } catch {
+    // ignore in restricted runtimes
+  }
+  try {
+    resolvers.push(createRequire(path.join(process.cwd(), 'package.json')));
+  } catch {
+    // ignore when cwd has no resolvable root
+  }
+
+  let foundSchema: any;
+  let foundH: any;
+
+  for (const req of resolvers) {
+    if (!foundSchema) {
+      for (const id of ['schemastery', 'koishi']) {
+        try {
+          const mod = req(id);
+          const candidate = id === 'schemastery' ? mod?.default ?? mod : mod?.Schema;
+          if (typeof candidate === 'function' && typeof candidate.object === 'function') {
+            foundSchema = candidate;
+            break;
+          }
+        } catch {
+          // continue searching
+        }
+      }
+    }
+    if (!foundH) {
+      for (const id of ['@satorijs/element', 'koishi']) {
+        try {
+          const mod = req(id);
+          const candidate = id === '@satorijs/element' ? mod?.default ?? mod : mod?.h;
+          if (typeof candidate === 'function' && typeof candidate.text === 'function') {
+            foundH = candidate;
+            break;
+          }
+        } catch {
+          // continue searching
+        }
+      }
+    }
+    if (foundSchema && foundH) break;
+  }
+
+  return { Schema: foundSchema, h: foundH };
+}
+
+function buildCallableFallbackSchema() {
   const wrapField = (meta: Record<string, unknown>) => {
-    const node: Record<string, any> = { ...meta };
-    node.default = (val: unknown) => wrapField({ ...node, defaultValue: val });
-    node.description = (desc: string) => wrapField({ ...node, desc });
-    node.min = (minVal: number) => wrapField({ ...node, minValue: minVal });
-    node.max = (maxVal: number) => wrapField({ ...node, maxValue: maxVal });
-    return node;
+    const fn = (val: unknown) => (val === undefined ? meta.defaultValue : val);
+    return Object.assign(fn, meta, {
+      default: (val: unknown) => wrapField({ ...meta, defaultValue: val }),
+      description: (desc: string) => wrapField({ ...meta, desc }),
+      role: (roleName: string) => wrapField({ ...meta, role: roleName }),
+      min: (minVal: number) => wrapField({ ...meta, minValue: minVal }),
+      max: (maxVal: number) => wrapField({ ...meta, maxValue: maxVal }),
+      step: (stepVal: number) => wrapField({ ...meta, stepValue: stepVal }),
+    });
   };
   return {
-    object: (dict: Record<string, unknown>) => ({ type: 'object', dict }),
+    object: (dict: Record<string, unknown>) => {
+      const schemaCallable = (raw?: KoishiSpeakConfig) => resolveKoishiSpeakConfig(raw);
+      return Object.assign(schemaCallable, {
+        type: 'object',
+        dict,
+        description: (desc: string) => Object.assign(schemaCallable, { type: 'object', dict, desc }),
+        toJSON: () => ({ type: 'object', dict }),
+      });
+    },
     boolean: () => wrapField({ type: 'boolean' }),
     number: () => wrapField({ type: 'number' }),
     string: () => wrapField({ type: 'string' }),
@@ -90,79 +197,356 @@ function buildFallbackSchema() {
   };
 }
 
-const S = hostSchema ?? buildFallbackSchema();
+const hostBindings = resolveHostKoishiBindings();
+const S = hostBindings.Schema ?? buildCallableFallbackSchema();
 
 export const Config = S.object({
-  enabled: S.boolean().default(true).description('Enable outbound IM bubble splitting & pipe-table conversion.'),
+  enabled: S.boolean()
+    .default(true)
+    .description('启用外发消息短气泡分段与裸 Markdown 管道表格转换（Enable outbound IM bubble & pipe-table gate）。'),
   persona: S.union(['neutral_peer', 'sharp_lead', 'warm_companion', 'calm_sre', 'custom'])
     .default('neutral_peer')
-    .description('Active tone baseline exposed via ctx.nbSpeak.getSystemPrompt().'),
-  customSoul: S.string().default('').description('Optional custom persona instructions when persona="custom".'),
+    .description('语气基线预设（通过 ctx.nbSpeak.getSystemPrompt() 提供给上游对话插件）。'),
+  customSoul: S.string()
+    .default('')
+    .description('当 persona 设为 custom 时的自定义语气补充说明。'),
   tableMode: S.union(['auto', 'kv', 'code'])
     .default('auto')
-    .description('Convert raw Markdown pipe tables to mobile KV cards (OneBot/QQ/WeChat) or <=40-col monospace.'),
-  maxMonospaceWidth: S.number().min(24).max(120).default(40).description('Maximum columns before tables degrade to KV cards.'),
-  maxBubbles: S.number().min(1).max(6).default(4).description('Maximum conversational bubbles per turn.'),
-  pacedDelivery: S.boolean().default(true).description('Deliver multi-bubble turns sequentially with natural typing delays.'),
-  cadenceSpeed: S.number().min(0.25).max(50).default(1).description('Typing-delay speed multiplier (higher = faster).'),
-  platforms: S.array(S.string()).default([]).description('Optional platform allowlist (empty = all adapters).'),
-  enableVoiceNotes: S.boolean().default(false).description('Enable optional voice-note prompt rules (disabled by default).'),
+    .description('管道表格转换策略：auto（OneBot/QQ/微信自动转手机键值卡，TG/Discord 短表转等宽代码块）、kv（全部转键值卡）、code（<=40列等宽块）。'),
+  maxMonospaceWidth: S.number()
+    .min(24)
+    .max(120)
+    .default(40)
+    .description('等宽代码表格最大显示列宽（超出自动降级为手机易读键值卡）。'),
+  maxBubbles: S.number()
+    .min(1)
+    .max(6)
+    .default(4)
+    .description('单轮对话短气泡数量上限（超出部分自动归并收束，绝不丢字）。'),
+  pacedDelivery: S.boolean()
+    .default(true)
+    .description('按真人拇指打字节奏逐条投递多气泡与代码/表格卡片。'),
+  cadenceSpeed: S.number()
+    .min(0.25)
+    .max(50)
+    .default(1)
+    .description('打字间隔倍率（数值越大发送越快，1 为拟真默认节奏）。'),
+  platforms: S.array(S.string())
+    .default([])
+    .description('指定生效的平台标识白名单（如 onebot, qq, telegram, discord；留空表示全部适配器生效）。'),
+  enableVoiceNotes: S.boolean()
+    .default(false)
+    .description('启用可选语音条提示词规则（默认严格关闭，仅发送纯文本短气泡与卡片）。'),
 });
 
-export function resolveKoishiSpeakConfig(raw: KoishiSpeakConfig = {}): ResolvedKoishiSpeakConfig {
-  const p = String(raw.persona ?? 'neutral_peer');
-  const persona: PersonaPresetId =
-    p === 'sharp_lead' || p === 'warm_companion' || p === 'calm_sre' || p === 'custom' ? p : 'neutral_peer';
-  const tm = String(raw.tableMode ?? 'auto');
-  const tableMode: ChannelTableMode = tm === 'kv' || tm === 'code' ? tm : 'auto';
-  const width = Number(raw.maxMonospaceWidth ?? 40);
-  const maxBubbles = Number(raw.maxBubbles ?? 4);
-  const speed = Number(raw.cadenceSpeed ?? 1);
+const STRUCTURAL_CONTAINER_TYPES = new Set([
+  'message',
+  'figure',
+  'forward',
+  'card',
+  'button',
+]);
 
+function escapeSatoriText(raw: string): string {
+  return raw
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
+
+function makeSatoriElement(type: string, attrs: Record<string, unknown>, children: KoishiElementLike[] = []): KoishiElementLike {
+  if (hostBindings.h) {
+    if (type === 'text') {
+      return hostBindings.h.text(String(attrs.content ?? ''));
+    }
+    return hostBindings.h(type, attrs, children);
+  }
+  if (type === 'text') {
+    const content = String(attrs.content ?? '');
+    return {
+      type: 'text',
+      attrs: { content },
+      children: [],
+      toString() {
+        return escapeSatoriText(content);
+      },
+    };
+  }
   return {
-    enabled: raw.enabled !== false,
-    persona,
-    customSoul: typeof raw.customSoul === 'string' ? raw.customSoul.trim() : '',
-    tableMode,
-    maxMonospaceWidth: Number.isFinite(width) ? Math.max(24, Math.min(120, Math.round(width))) : 40,
-    maxBubbles: Number.isFinite(maxBubbles) ? Math.max(1, Math.min(6, Math.round(maxBubbles))) : 4,
-    pacedDelivery: raw.pacedDelivery !== false,
-    cadenceSpeed: Number.isFinite(speed) && speed > 0 ? Math.min(50, speed) : 1,
-    platforms: Array.isArray(raw.platforms)
-      ? raw.platforms.map((item) => String(item ?? '').trim().toLowerCase()).filter(Boolean)
-      : [],
-    enableVoiceNotes: raw.enableVoiceNotes === true,
+    type,
+    attrs: { ...attrs },
+    children: [...children],
   };
 }
 
 function makeTextElement(text: string): KoishiElementLike {
+  return makeSatoriElement('text', { content: text });
+}
+
+interface PlannedSatoriTurn {
+  readonly changed: boolean;
+  readonly units: readonly KoishiElementLike[][];
+  readonly scheduleTexts: readonly string[];
+  readonly detachedSessionQuote?: Record<string, unknown>;
+}
+
+function planSatoriSessionTurn(
+  session: KoishiSessionLike,
+  cfg: ResolvedKoishiSpeakConfig,
+  platform: string,
+): PlannedSatoriTurn | undefined {
+  const channelHint = platform || 'onebot';
+
+  // Fallback for minimal string-only sessions without `elements` array
+  if (!Array.isArray(session.elements) || session.elements.length === 0) {
+    if (typeof session.content !== 'string' || !session.content.trim()) {
+      return undefined;
+    }
+    const transformed = transformOutboundText(session.content, {
+      channel: channelHint,
+      tableMode: cfg.tableMode,
+      maxMonospaceWidth: cfg.maxMonospaceWidth,
+      maxBubbles: cfg.maxBubbles,
+      cadence: { speedMultiplier: cfg.cadenceSpeed },
+    });
+    if (!transformed.changed) return undefined;
+    const segs = [...transformed.bubbles, ...transformed.artifactCards].filter(Boolean);
+    if (segs.length === 0) return undefined;
+    return {
+      changed: true,
+      units: segs.map((t) => [makeTextElement(t)]),
+      scheduleTexts: segs,
+    };
+  }
+
+  // Never touch composite forward/card/button trees
+  for (const el of session.elements) {
+    if (!el || STRUCTURAL_CONTAINER_TYPES.has(el.type)) {
+      return undefined;
+    }
+  }
+
+  const leadingHeaders: KoishiElementLike[] = [];
+  let detachedSessionQuote: Record<string, unknown> | undefined;
+  const sessionQuoteObj = session.event?.message?.quote ?? session.quote;
+  const firstIsQuote = session.elements[0]?.type === 'quote';
+  if (!firstIsQuote && sessionQuoteObj && (sessionQuoteObj.id || sessionQuoteObj.messageId)) {
+    const qId = String(sessionQuoteObj.id ?? sessionQuoteObj.messageId);
+    leadingHeaders.push(makeSatoriElement('quote', { id: qId }));
+    detachedSessionQuote = sessionQuoteObj;
+  }
+
+  let cursor = 0;
+  let trailingSpaceAfterAt = false;
+  while (cursor < session.elements.length) {
+    const el = session.elements[cursor]!;
+    if (el.type === 'quote' || el.type === 'at') {
+      leadingHeaders.push(el);
+      cursor += 1;
+      trailingSpaceAfterAt = el.type === 'at';
+      continue;
+    }
+    if (
+      trailingSpaceAfterAt &&
+      el.type === 'text' &&
+      typeof el.attrs?.content === 'string' &&
+      /^[ \t]+$/.test(el.attrs.content)
+    ) {
+      cursor += 1;
+      trailingSpaceAfterAt = false;
+      continue;
+    }
+    break;
+  }
+
+  type BodyToken =
+    | { readonly kind: 'text'; readonly text: string }
+    | { readonly kind: 'media'; readonly element: KoishiElementLike };
+
+  const bodyTokens: BodyToken[] = [];
+  let textBuf = '';
+  for (let i = cursor; i < session.elements.length; i += 1) {
+    const el = session.elements[i]!;
+    if (el.type === 'text') {
+      textBuf += String(el.attrs?.content ?? '');
+    } else if (el.type === 'br') {
+      textBuf += '\n';
+    } else {
+      if (textBuf) {
+        bodyTokens.push({ kind: 'text', text: textBuf });
+        textBuf = '';
+      }
+      bodyTokens.push({ kind: 'media', element: el });
+    }
+  }
+  if (textBuf) {
+    bodyTokens.push({ kind: 'text', text: textBuf });
+  }
+
+  const hasTextToken = bodyTokens.some((t) => t.kind === 'text' && t.text.trim().length > 0);
+  if (!hasTextToken) {
+    return undefined;
+  }
+
+  let anyTextChanged = false;
+  const expandedTokens: Array<{ readonly kind: 'text'; readonly segments: readonly string[] } | { readonly kind: 'media'; readonly element: KoishiElementLike }> = [];
+  let totalTextSegments = 0;
+  let mediaCount = 0;
+
+  for (const tok of bodyTokens) {
+    if (tok.kind === 'media') {
+      mediaCount += 1;
+      expandedTokens.push(tok);
+      continue;
+    }
+    if (!tok.text.trim()) {
+      continue;
+    }
+    const tr = transformOutboundText(tok.text, {
+      channel: channelHint,
+      tableMode: cfg.tableMode,
+      maxMonospaceWidth: cfg.maxMonospaceWidth,
+      maxBubbles: cfg.maxBubbles,
+      cadence: { speedMultiplier: cfg.cadenceSpeed },
+    });
+    if (tr.changed) anyTextChanged = true;
+    const segs = tr.changed
+      ? [...tr.bubbles, ...tr.artifactCards].filter(Boolean)
+      : [tok.text.trim()];
+    totalTextSegments += segs.length;
+    expandedTokens.push({ kind: 'text', segments: segs });
+  }
+
+  if (!anyTextChanged) {
+    return undefined;
+  }
+
+  // Preserve native single-image + single-caption pairing (e.g. `[<img/>, <text "Caption">]`) in one message
+  if (totalTextSegments === 1 && mediaCount > 0) {
+    const combinedUnit: KoishiElementLike[] = [...leadingHeaders];
+    let textLabel = '';
+    for (const item of expandedTokens) {
+      if (item.kind === 'media') {
+        combinedUnit.push(item.element);
+      } else if (item.segments[0]) {
+        const prefixSpace =
+          combinedUnit.length > 0 && combinedUnit[combinedUnit.length - 1]?.type === 'at' ? ' ' : '';
+        combinedUnit.push(makeTextElement(`${prefixSpace}${item.segments[0]}`));
+        textLabel = item.segments[0];
+      }
+    }
+    return {
+      changed: true,
+      units: [combinedUnit],
+      scheduleTexts: [textLabel],
+    };
+  }
+
+  const rawUnits: KoishiElementLike[][] = [];
+  const scheduleTexts: string[] = [];
+
+  for (const item of expandedTokens) {
+    if (item.kind === 'media') {
+      rawUnits.push([item.element]);
+      scheduleTexts.push('');
+    } else {
+      for (const seg of item.segments) {
+        rawUnits.push([makeTextElement(seg)]);
+        scheduleTexts.push(seg);
+      }
+    }
+  }
+
+  if (rawUnits.length === 0) return undefined;
+
+  if (leadingHeaders.length > 0) {
+    const firstUnit = rawUnits[0]!;
+    const lastHeader = leadingHeaders[leadingHeaders.length - 1];
+    if (lastHeader?.type === 'at' && firstUnit[0]?.type === 'text') {
+      const firstText = String(firstUnit[0].attrs?.content ?? '');
+      rawUnits[0] = [
+        ...leadingHeaders,
+        makeTextElement(firstText.startsWith(' ') || firstText.startsWith('\n') ? firstText : ` ${firstText}`),
+        ...firstUnit.slice(1),
+      ];
+    } else {
+      rawUnits[0] = [...leadingHeaders, ...firstUnit];
+    }
+  }
+
   return {
-    type: 'text',
-    attrs: { content: text },
-    children: [],
+    changed: true,
+    units: rawUnits,
+    scheduleTexts,
+    detachedSessionQuote,
   };
 }
 
-function extractPureTextElements(session: KoishiSessionLike): string | undefined {
-  if (Array.isArray(session.elements) && session.elements.length > 0) {
-    // Leave rich media / quote / forward / audio segments untouched so native adapter elements never break
-    const allText = session.elements.every((el) => el && el.type === 'text');
-    if (!allText) return undefined;
-    return session.elements.map((el) => String(el.attrs?.content ?? '')).join('');
+function flattenUnitsToElements(units: readonly (readonly KoishiElementLike[])[]): KoishiElementLike[] {
+  const merged: KoishiElementLike[] = [];
+  for (const unit of units) {
+    for (const el of unit) {
+      const prev = merged[merged.length - 1];
+      if (prev && prev.type === 'text' && el.type === 'text') {
+        const combined = `${String(prev.attrs?.content ?? '')}\n\n${String(el.attrs?.content ?? '')}`;
+        merged[merged.length - 1] = makeTextElement(combined);
+      } else {
+        merged.push(el);
+      }
+    }
   }
-  if (typeof session.content === 'string' && session.content.trim()) {
-    return session.content;
-  }
-  return undefined;
+  return merged;
 }
 
-function writeSessionText(session: KoishiSessionLike, nextText: string): void {
+function writeSessionElements(session: KoishiSessionLike, elements: readonly KoishiElementLike[]): void {
   if (Array.isArray(session.elements)) {
-    session.elements.splice(0, session.elements.length, makeTextElement(nextText));
+    session.elements.splice(0, session.elements.length, ...elements);
+    return;
   }
-  if (typeof session.content === 'string') {
-    session.content = nextText;
+  session.content = elements
+    .map((el) => (el.type === 'text' ? String(el.attrs?.content ?? '') : el.toString?.() ?? ''))
+    .join('');
+}
+
+function canDispatchFollowUp(session: KoishiSessionLike, options?: Record<string, unknown>): boolean {
+  if (session.bot && typeof session.bot.sendMessage === 'function' && session.channelId) {
+    return true;
   }
+  const originSession = options?.session as KoishiSessionLike | undefined;
+  if (originSession && typeof originSession.send === 'function') {
+    return true;
+  }
+  return typeof session.send === 'function';
+}
+
+async function dispatchSingleUnit(
+  session: KoishiSessionLike,
+  options: Record<string, unknown> | undefined,
+  unit: readonly KoishiElementLike[],
+): Promise<void> {
+  const bypassOptions: Record<string, unknown> = {
+    ...(options ?? {}),
+    session: (options?.session as object | undefined) ?? session,
+    nbSpeakBypass: true,
+  };
+
+  if (session.bot && typeof session.bot.sendMessage === 'function' && session.channelId) {
+    await session.bot.sendMessage(
+      session.channelId,
+      [...unit],
+      session.event?.referrer ?? session.guildId,
+      bypassOptions,
+    );
+    return;
+  }
+
+  const originSession = options?.session as KoishiSessionLike | undefined;
+  const sender = originSession && typeof originSession.send === 'function' ? originSession : session;
+  const onlySingleText = unit.length === 1 && unit[0]?.type === 'text';
+  const payload: string | KoishiElementLike[] = onlySingleText
+    ? String(unit[0]!.attrs?.content ?? '')
+    : [...unit];
+  await sender.send!(payload, bypassOptions);
 }
 
 export function apply(
@@ -181,6 +565,21 @@ export function apply(
         await sleep(ms);
       }
     });
+
+  ctx.i18n?.define('zh-CN', {
+    _config: {
+      enabled: '启用短气泡分段与管道表格门禁',
+      persona: '语气基线预设',
+      customSoul: '自定义语气说明',
+      tableMode: 'Markdown 管道表格转换模式',
+      maxMonospaceWidth: '等宽代码表格最大列宽',
+      maxBubbles: '单轮最多短气泡数',
+      pacedDelivery: '拟真打字间隔逐条发送',
+      cadenceSpeed: '打字速度倍率',
+      platforms: '生效平台白名单',
+      enableVoiceNotes: '启用可选语音条规则（默认关闭）',
+    },
+  });
 
   ctx.nbSpeak = {
     formatReply(rawText: string, platform?: string) {
@@ -203,10 +602,9 @@ export function apply(
 
   if (!cfg.enabled) return;
 
-  // Re-entrancy bypass set for follow-up bubbles dispatched via `session.send(...)`
   const bypassSessions = new WeakSet<object>();
 
-  ctx.on('before-send', (session: KoishiSessionLike, options?: Record<string, unknown>) => {
+  ctx.on('before-send', async (session: KoishiSessionLike, options?: Record<string, unknown>) => {
     if (!session || typeof session !== 'object') return;
     if (options?.nbSpeakBypass === true || bypassSessions.has(session)) return;
 
@@ -215,44 +613,44 @@ export function apply(
       return;
     }
 
-    const rawText = extractPureTextElements(session);
-    if (!rawText || !rawText.trim()) return;
+    const plan = planSatoriSessionTurn(session, cfg, platform);
+    if (!plan || !plan.changed || plan.units.length === 0) return;
 
-    const transformed = transformOutboundText(rawText, {
-      channel: platform || 'onebot',
-      tableMode: cfg.tableMode,
-      maxMonospaceWidth: cfg.maxMonospaceWidth,
-      maxBubbles: cfg.maxBubbles,
-      cadence: { speedMultiplier: cfg.cadenceSpeed },
-    });
-
-    if (!transformed.changed) return;
-
-    const segments = [...transformed.bubbles, ...transformed.artifactCards].filter(Boolean);
-    if (segments.length === 0) return;
-
-    if (!cfg.pacedDelivery || segments.length === 1 || typeof session.send !== 'function') {
-      writeSessionText(session, transformed.primaryText);
+    if (!cfg.pacedDelivery || plan.units.length === 1 || !canDispatchFollowUp(session, options)) {
+      writeSessionElements(session, flattenUnitsToElements(plan.units));
       return;
     }
 
-    // Deliver segment[0] through the active send frame and pace segments[1..N-1] sequentially
-    writeSessionText(session, segments[0]!);
-    const tailSegments = segments.slice(1);
-    const fullSchedule = computeBubbleSchedule(segments, { speedMultiplier: cfg.cadenceSpeed });
+    // Dispatch units[0 .. N-2] sequentially with natural typing cadence and leave unit[N-1]
+    // in `session.elements` so Satori's MessageEncoder flushes the final bubble in exact order
+    // and recovers unsent tail segments automatically if any mid-turn network send throws.
+    const fullSchedule = computeBubbleSchedule(plan.scheduleTexts, { speedMultiplier: cfg.cadenceSpeed });
+    let sentCount = 0;
 
-    void (async () => {
-      bypassSessions.add(session);
-      try {
-        for (let i = 0; i < tailSegments.length; i += 1) {
-          const delayMs = fullSchedule[i + 1]?.delayMs ?? 420;
-          await sleepFn(delayMs);
-          await session.send!(tailSegments[i]!, { nbSpeakBypass: true });
-        }
-      } finally {
-        bypassSessions.delete(session);
+    bypassSessions.add(session);
+    try {
+      for (let i = 0; i < plan.units.length - 1; i += 1) {
+        const delayMs = fullSchedule[i]?.delayMs ?? 360;
+        await sleepFn(delayMs);
+        await dispatchSingleUnit(session, options, plan.units[i]!);
+        sentCount += 1;
       }
-    })();
+    } catch (err) {
+      ctx.logger?.('nb-speak')?.warn(err);
+      const remainingUnits = plan.units.slice(sentCount);
+      writeSessionElements(session, flattenUnitsToElements(remainingUnits));
+      return;
+    } finally {
+      bypassSessions.delete(session);
+    }
+
+    if (plan.detachedSessionQuote && session.event?.message) {
+      session.event.message.quote = undefined;
+    }
+
+    const finalDelayMs = fullSchedule[plan.units.length - 1]?.delayMs ?? 360;
+    await sleepFn(finalDelayMs);
+    writeSessionElements(session, plan.units[plan.units.length - 1]!);
   });
 }
 

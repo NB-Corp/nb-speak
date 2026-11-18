@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=68.0"]
+requires = ["setuptools>=77.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -7,7 +7,8 @@ name = "nonebot-plugin-nb-speak"
 version = "0.2.0"
 description = "Stop NoneBot2 chatbots from dumping raw Markdown pipe tables and 250-word essays: paced IM bubbles & mobile key-value/code cards across all adapters."
 readme = "README.md"
-license = { text = "MIT" }
+license = "MIT"
+license-files = ["LICENSE"]
 authors = [
   { name = "Nai Long 7th", email = "nailong@xter.org" }
 ]
@@ -28,7 +29,6 @@ keywords = [
 ]
 classifiers = [
   "Framework :: AsyncIO",
-  "License :: OSI Approved :: MIT License",
   "Programming Language :: Python :: 3",
   "Programming Language :: Python :: 3.10",
   "Programming Language :: Python :: 3.11",

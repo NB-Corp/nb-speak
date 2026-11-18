@@ -124,6 +124,30 @@ test('MCP request handler serves initialize, tools/call (format_im_bubbles & lin
     params: { uri: 'nb-speak://skills/chat-human' },
   }) as any;
   assert.match(resRead.result.contents[0].text, /chat-human/);
+
+  // Resource templates list & error code parity with official @modelcontextprotocol/sdk (-32602 InvalidParams)
+  const tplList = handle({
+    jsonrpc: '2.0',
+    id: 7,
+    method: 'resources/templates/list',
+  }) as any;
+  assert.deepEqual(tplList.result.resourceTemplates, []);
+
+  const unknownTool = handle({
+    jsonrpc: '2.0',
+    id: 8,
+    method: 'tools/call',
+    params: { name: 'nonexistent_tool', arguments: {} },
+  }) as any;
+  assert.equal(unknownTool.error.code, -32602);
+
+  const missingTextArg = handle({
+    jsonrpc: '2.0',
+    id: 9,
+    method: 'tools/call',
+    params: { name: 'format_im_bubbles', arguments: { channel: 'telegram' } },
+  }) as any;
+  assert.equal(missingTextArg.result.isError, true);
 });
 
 test('attachMcpStreams supports both Content-Length framing and `nb-speak mcp` NDJSON stdio end-to-end', async () => {

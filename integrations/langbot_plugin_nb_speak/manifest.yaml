@@ -138,6 +138,36 @@ spec:
       zh_Hans: 可选 TTS 接口鉴权密钥。
     required: false
     default: ""
+  - name: tts_model
+    type: string
+    label:
+      en_US: Optional TTS Model
+      zh_Hans: 可选 TTS 模型名
+    description:
+      en_US: OpenAI-compatible speech model name (default tts-1).
+      zh_Hans: 兼容 /v1/audio/speech 的语音模型标识（默认 tts-1）。
+    required: false
+    default: "tts-1"
+  - name: tts_voice
+    type: string
+    label:
+      en_US: Optional TTS Voice
+      zh_Hans: 可选 TTS 音色 ID
+    description:
+      en_US: OpenAI-compatible voice identifier (default alloy).
+      zh_Hans: 兼容 /v1/audio/speech 的音色标识（默认 alloy）。
+    required: false
+    default: "alloy"
+  - name: tts_timeout_sec
+    type: int
+    label:
+      en_US: Optional TTS Timeout (Seconds, <=8s)
+      zh_Hans: 可选 TTS 超时上限（秒，<=8s）
+    description:
+      en_US: Hard timeout capped at 8 seconds; falls back to pure text immediately on timeout or error.
+      zh_Hans: 硬限幅不超过 8 秒；超时或报错毫秒级静默退回纯文字，绝不吞消息。
+    required: false
+    default: 4
   components:
     EventListener:
       fromDirs:

@@ -63,14 +63,18 @@ CONCIERGE_TAIL_RE = re.compile(
 
 VOICE_NOTE_TAG_RE = re.compile(r"<voice_note>\s*([\s\S]*?)\s*</voice_note>", re.IGNORECASE)
 FENCED_CODE_RE = re.compile(r"```([A-Za-z0-9_+\-]*)\n([\s\S]*?)```")
-PIPE_TABLE_RE = re.compile(r"(?:^|\n)((?:\|[^\n]+\|\s*\n)\|[\s:\-|]+\|\s*\n(?:\|[^\n]+\|\s*(?:\n|$))+)")
+PIPE_TABLE_RE = re.compile(
+    r"(?:^|\n)((?:\|[^\n]+\|[ \t]*\n)\|[ \t:\-|]+\|[ \t]*\n(?:\|[^\n]+\|[ \t]*(?:\n|$))+)"
+)
 TABLE_SEP_CELL_RE = re.compile(r"^:?-{2,}:?$")
 WIDE_CHAR_RE = re.compile(
     r"[\u1100-\u115f\u2e80-\u303e\u3040-\u33bf\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff\ufe30-\ufe6f\uff01-\uff60\uffe0-\uffe6]"
 )
 SENTENCE_SPLIT_RE = re.compile(
-    r"(?:https?://\S+|[^。！？；;\n!?]|!(?=\S)|\?(?=[A-Za-z0-9_=&/%#]))+(?:[。！？；;…~～]+|[!?]+(?=\s|$)|$)"
+    r"(?:https?://\S+|[^。！？；;\n!?.]|\.(?!\s+[A-Z0-9\"'])|!(?=\S)|\?(?=[A-Za-z0-9_=&/%#]))+(?:[。！？；;…~～]+|[.!?]+(?=\s+|$)|$)"
 )
+COMPACT_KV_CARD_LINE_RE = re.compile(r"^-\s+[^*#\n]{1,48}(?:\s*(?:[:：]|—)\s*[^*#\n]+)$")
+MAX_TTS_TIMEOUT_SEC = 8.0
 
 
 @dataclass(frozen=True)
@@ -440,6 +444,23 @@ def plan_outbound_segments(
 
     working = PIPE_TABLE_RE.sub(_shield_table, working)
 
+    # Shield already-formatted compact KV cards in place so repeated formatting passes stay 100% idempotent
+    rebuilt_blocks: List[str] = []
+    for block in re.split(r"\n\s*\n+", working):
+        tb = block.strip()
+        if not tb or re.match(r"^@@NB_SPEAK_CARD_\d+@@$", tb):
+            rebuilt_blocks.append(block)
+            continue
+        lines_in_block = [ln.strip() for ln in tb.split("\n") if ln.strip()]
+        body_lines = lines_in_block[1:] if (lines_in_block and re.match(r"^\[[^\]\n]+\]$", lines_in_block[0])) else lines_in_block
+        if body_lines and all(COMPACT_KV_CARD_LINE_RE.match(ln) for ln in body_lines):
+            slot = len(card_pool)
+            card_pool.append(("table", "\n".join(lines_in_block)))
+            rebuilt_blocks.append(f"@@NB_SPEAK_CARD_{slot}@@")
+        else:
+            rebuilt_blocks.append(block)
+    working = "\n\n".join(rebuilt_blocks)
+
     # Walk tokens in document order, splitting prose blocks while keeping card tokens atomic
     raw_tokens: List[tuple[str, str]] = []
     token_re = re.compile(r"@@NB_SPEAK_CARD_(\d+)@@")
@@ -544,7 +565,7 @@ def _post_tts_wav_sync(
     with urllib.request.urlopen(req, timeout=timeout_sec) as resp:
         if resp.status < 200 or resp.status >= 300:
             return None
-        audio_bytes = resp.read()
+        audio_bytes = resp.read(10 * 1024 * 1024)
     if not audio_bytes:
         return None
 
@@ -553,9 +574,29 @@ def _post_tts_wav_sync(
     fd, wav_path = tempfile.mkstemp(prefix="nb_speak_astr_", suffix=".wav", dir=target_dir)
     try:
         os.write(fd, audio_bytes)
-    finally:
+    except Exception:
+        try:
+            os.close(fd)
+        except OSError:
+            pass
+        try:
+            os.unlink(wav_path)
+        except OSError:
+            pass
+        raise
+    else:
         os.close(fd)
     return wav_path
+
+
+def clamp_tts_timeout(raw_timeout: Any, default: float = 5.0) -> float:
+    try:
+        val = float(raw_timeout)
+    except (TypeError, ValueError):
+        val = default
+    if val <= 0:
+        val = default
+    return max(0.2, min(MAX_TTS_TIMEOUT_SEC, val))
 
 
 async def synthesize_openai_wav(
@@ -566,17 +607,23 @@ async def synthesize_openai_wav(
     model: str = "tts-1",
     voice: str = "alloy",
     output_dir: str | None = None,
+    timeout_sec: float = 5.0,
 ) -> str | None:
-    """Async non-blocking wrapper around stdlib urllib for optional WAV voice-note synthesis."""
+    """Async non-blocking wrapper around stdlib urllib with a hard <=8s timeout cap."""
+    clamped = clamp_tts_timeout(timeout_sec)
     try:
-        return await asyncio.to_thread(
-            _post_tts_wav_sync,
-            text,
-            api_base=api_base,
-            api_key=api_key,
-            model=model,
-            voice=voice,
-            output_dir=output_dir,
+        return await asyncio.wait_for(
+            asyncio.to_thread(
+                _post_tts_wav_sync,
+                text,
+                api_base=api_base,
+                api_key=api_key,
+                model=model,
+                voice=voice,
+                output_dir=output_dir,
+                timeout_sec=clamped,
+            ),
+            timeout=clamped + 0.3,
         )
     except Exception:
         return None

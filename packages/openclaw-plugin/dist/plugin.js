@@ -41,6 +41,7 @@ export const OPENCLAW_PLUGIN_ID = 'nb-speak-openclaw';
                              
                             
                             
+                                
  
 
 export const OPENCLAW_CONFIG_SCHEMA = {
@@ -68,6 +69,7 @@ export const OPENCLAW_CONFIG_SCHEMA = {
     ttsApiKey: { type: 'string', default: '' },
     ttsModel: { type: 'string', default: 'tts-1' },
     ttsVoice: { type: 'string', default: 'alloy' },
+    ttsTimeoutMs: { type: 'integer', minimum: 500, maximum: 8000, default: 5000 },
   },
 }         ;
 
@@ -165,6 +167,10 @@ export function resolveOpenClawSpeakConfig(raw                                  
   const channels = Array.isArray(src.channels)
     ? src.channels.map((c) => String(c ?? '').trim().toLowerCase()).filter(Boolean)
     : [];
+  const ttsTimeoutNum = Number(src.ttsTimeoutMs ?? 5000);
+  const ttsTimeoutMs = Number.isFinite(ttsTimeoutNum) && ttsTimeoutNum > 0
+    ? Math.max(500, Math.min(8000, Math.round(ttsTimeoutNum)))
+    : 5000;
 
   return {
     enabled: src.enabled !== false,
@@ -185,6 +191,7 @@ export function resolveOpenClawSpeakConfig(raw                                  
     ttsApiKey: typeof src.ttsApiKey === 'string' ? src.ttsApiKey.trim() : '',
     ttsModel: typeof src.ttsModel === 'string' && src.ttsModel.trim() ? src.ttsModel.trim() : 'tts-1',
     ttsVoice: typeof src.ttsVoice === 'string' && src.ttsVoice.trim() ? src.ttsVoice.trim() : 'alloy',
+    ttsTimeoutMs,
   };
 }
 
@@ -225,6 +232,9 @@ async function synthesizeOptionalOpenAiSpeech(
   const headers                         = { 'content-type': 'application/json' };
   if (cfg.ttsApiKey) headers.authorization = `Bearer ${cfg.ttsApiKey}`;
 
+  const timeoutSignal = AbortSignal.timeout(cfg.ttsTimeoutMs);
+  const effectiveSignal = signal ? AbortSignal.any([timeoutSignal, signal]) : timeoutSignal;
+
   const response = await fetchImpl(endpoint, {
     method: 'POST',
     headers,
@@ -234,7 +244,7 @@ async function synthesizeOptionalOpenAiSpeech(
       input: text.trim(),
       response_format: 'ogg',
     }),
-    signal,
+    signal: effectiveSignal,
   });
   if (!response.ok) return undefined;
 
@@ -276,6 +286,19 @@ export function createOpenClawSpeakPlugin(runtimeOpts                           
         }
       };
 
+      // Bounded ring of normalized outbound texts emitted by `reply_payload_sending`
+      // so downstream `message_sending` hooks never double-process the same turn.
+      const recentNormalizedPayloads = new Set        ();
+      const rememberNormalizedPayload = (text        )       => {
+        const trimmed = text.trim();
+        if (!trimmed) return;
+        recentNormalizedPayloads.add(trimmed);
+        if (recentNormalizedPayloads.size > 256) {
+          const oldest = recentNormalizedPayloads.values().next().value;
+          if (oldest) recentNormalizedPayloads.delete(oldest);
+        }
+      };
+
       if (cfg.registerTools) {
         const toolGuidance = buildSpeakSystemPrompt({
           persona: cfg.persona,
@@ -312,18 +335,32 @@ export function createOpenClawSpeakPlugin(runtimeOpts                           
               );
 
               let deliveredViaChannel = false;
-              if (cfg.pacedToolDelivery && toolContext?.delivery?.send && schedule.length > 0) {
-                for (const beat of schedule) {
-                  await sleepFn(beat.delayMs, toolContext.abortSignal);
-                  await toolContext.delivery.send({ text: beat.text });
+              let partialSentCount = 0;
+              if (cfg.pacedToolDelivery && typeof toolContext?.delivery?.send === 'function' && schedule.length > 0) {
+                try {
+                  for (const beat of schedule) {
+                    await sleepFn(beat.delayMs, toolContext.abortSignal);
+                    await toolContext.delivery.send({ text: beat.text });
+                    partialSentCount += 1;
+                  }
+                  deliveredViaChannel = true;
+                } catch {
+                  // Lossless fallback: if channel delivery is unsupported or fails mid-turn,
+                  // return remaining unsent bubbles via tool output instead of crashing the run.
+                  deliveredViaChannel = false;
                 }
-                deliveredViaChannel = true;
 
-                if (cfg.enableVoiceNotes && typeof params.voice_note === 'object' && params.voice_note !== null) {
+                if (
+                  deliveredViaChannel &&
+                  cfg.enableVoiceNotes &&
+                  typeof params.voice_note === 'object' &&
+                  params.voice_note !== null
+                ) {
                   const vnText = String((params.voice_note                           ).text ?? '').trim();
                   if (vnText) {
+                    let audioPath                    ;
                     try {
-                      const audioPath = await synthesizeOptionalOpenAiSpeech(
+                      audioPath = await synthesizeOptionalOpenAiSpeech(
                         vnText,
                         cfg,
                         fetchImpl,
@@ -333,21 +370,25 @@ export function createOpenClawSpeakPlugin(runtimeOpts                           
                         await toolContext.delivery.send({ mediaUrl: audioPath });
                       }
                     } catch {
-                      // Silent fallback: never leak TTS backend diagnostics into user chat
+                      if (audioPath) {
+                        await fs.rm(audioPath, { force: true }).catch(() => {});
+                      }
                     }
                   }
                 }
 
-                if (toolContext.runId) {
+                if (deliveredViaChannel && toolContext.runId) {
                   rememberDeliveredRun(toolContext.runId);
                 }
               }
 
-              const summaryText = cleanedBubbles.join('\n\n');
+              const fallbackBubbles = partialSentCount > 0 ? cleanedBubbles.slice(partialSentCount) : cleanedBubbles;
+              const summaryText = fallbackBubbles.join('\n\n');
               return {
                 content: [{ type: 'text', text: deliveredViaChannel ? `[Delivered ${schedule.length} bubbles]` : summaryText }],
                 details: {
                   deliveredViaChannel,
+                  partialSentCount,
                   bubbles: cleanedBubbles,
                   schedule,
                   lint,
@@ -390,9 +431,13 @@ export function createOpenClawSpeakPlugin(runtimeOpts                           
               });
 
               let deliveredViaChannel = false;
-              if (cfg.pacedToolDelivery && toolContext?.delivery?.send && formattedCard.trim()) {
-                await toolContext.delivery.send({ text: formattedCard });
-                deliveredViaChannel = true;
+              if (cfg.pacedToolDelivery && typeof toolContext?.delivery?.send === 'function' && formattedCard.trim()) {
+                try {
+                  await toolContext.delivery.send({ text: formattedCard });
+                  deliveredViaChannel = true;
+                } catch {
+                  deliveredViaChannel = false;
+                }
               }
 
               return {
@@ -426,8 +471,11 @@ export function createOpenClawSpeakPlugin(runtimeOpts                           
           const payload = event?.payload;
           if (!payload || typeof payload !== 'object') return undefined;
 
-          // Never touch reasoning streams, status/compaction/fallback notices, error banners, or audio-only TTS transcripts
+          // Never touch streaming partial deltas, reasoning streams, status/compaction/fallback notices, or error banners
           if (
+            event.kind === 'partial' ||
+            event.kind === 'stream' ||
+            Boolean(payload.isPartial) ||
             payload.isReasoning ||
             payload.isCompactionNotice ||
             payload.isFallbackNotice ||
@@ -462,6 +510,7 @@ export function createOpenClawSpeakPlugin(runtimeOpts                           
           });
 
           if (!transformed.changed) return undefined;
+          rememberNormalizedPayload(transformed.primaryText);
           return {
             payload: {
               ...payload,
@@ -474,8 +523,18 @@ export function createOpenClawSpeakPlugin(runtimeOpts                           
           if (!event || typeof event.content !== 'string' || !event.content.trim()) {
             return undefined;
           }
-          // Skip audio-only hidden spoken transcripts (no visible caption rewrite)
-          if (Array.isArray(event.mediaUrls) && event.mediaUrls.length > 0 && Boolean(event.audioAsVoice)) {
+          // Skip streaming partial deltas and audio-only hidden spoken transcripts
+          if (
+            Boolean(event.isPartial) ||
+            event.kind === 'partial' ||
+            event.kind === 'stream' ||
+            (Array.isArray(event.mediaUrls) && event.mediaUrls.length > 0 && Boolean(event.audioAsVoice))
+          ) {
+            return undefined;
+          }
+
+          const trimmedContent = event.content.trim();
+          if (recentNormalizedPayloads.has(trimmedContent) || /^\[Delivered \d+ bubbles\]$/i.test(trimmedContent)) {
             return undefined;
           }
 
@@ -491,6 +550,7 @@ export function createOpenClawSpeakPlugin(runtimeOpts                           
           });
 
           if (!transformed.changed) return undefined;
+          rememberNormalizedPayload(transformed.primaryText);
           return { content: transformed.primaryText };
         });
       }

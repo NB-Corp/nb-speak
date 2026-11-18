@@ -129,6 +129,12 @@
       "ttsVoice": {
         "type": "string",
         "default": "alloy"
+      },
+      "ttsTimeoutMs": {
+        "type": "integer",
+        "minimum": 500,
+        "maximum": 8000,
+        "default": 5000
       }
     }
   }

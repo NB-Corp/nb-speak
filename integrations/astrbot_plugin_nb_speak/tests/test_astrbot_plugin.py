@@ -97,6 +97,8 @@ class AstrBotPluginNbSpeakTests(unittest.TestCase):
         self.assertIs(schema["enable_voice_notes"]["default"], False)
         self.assertIs(schema["tts_api_key"]["secret"], True)
         self.assertEqual(schema["persona_preset"]["default"], "keep_host")
+        self.assertLessEqual(schema["tts_timeout_sec"]["default"], 8.0)
+        self.assertEqual(schema["tts_timeout_sec"]["slider"]["max"], 8.0)
 
         canonical_lint = (REPO_ROOT / "skills" / "chat-human" / "scripts" / "bubble_lint.py").read_text(encoding="utf-8")
         bundled_lint = (PLUGIN_DIR / "bubble_lint.py").read_text(encoding="utf-8")
@@ -317,6 +319,77 @@ class AstrBotPluginNbSpeakTests(unittest.TestCase):
         finally:
             plugin_main.synthesize_openai_wav = orig_synth
             tmp_wav.unlink(missing_ok=True)
+
+    def test_concurrent_multi_session_isolation_and_english_decimal_splitting(self) -> None:
+        # 1. English multi-sentence paragraph splits cleanly without breaking decimals or URLs
+        en_wall = (
+            "Canary held steady at 0.02% error rate on v4.16.0 across https://api.example.com/v1?ratio=0.5 today. "
+            "Replica lag stayed below 12ms throughout the traffic ramp and CPU never crossed forty percent. "
+            "Connection pool headroom looks completely healthy so we can promote full production traffic right now."
+        )
+        en_plan = formatter.plan_outbound_segments(en_wall, platform_name="telegram", max_bubbles=4)
+        self.assertGreaterEqual(len(en_plan.bubbles), 2)
+        self.assertIn("0.02%", en_plan.bubbles[0])
+        self.assertIn("v4.16.0", en_plan.bubbles[0])
+        self.assertIn("https://api.example.com/v1?ratio=0.5", en_plan.bubbles[0])
+
+        # 2. Concurrent multi-session isolation on a single shared Star instance
+        plugin = plugin_main.NbSpeakPlugin(
+            context=None,
+            config={
+                "enabled": True,
+                "platform_mode": "auto",
+                "max_bubbles": 4,
+                "typing_delay_enabled": True,
+                "typing_speed_multiplier": 50.0,
+                "enable_voice_notes": False,
+            },
+        )
+
+        ev_qq = FakeAstrMessageEvent(
+            [
+                FakeReplyComp("r_qq"),
+                FakeAtComp("1001"),
+                FakeAtComp("1002"),
+                plugin_main.Comp.Plain("甲群排查完了。\n\n| 服务 | 状态 |\n|---|---|\n| 网关 | 正常 |"),
+            ],
+            platform_name="aiocqhttp",
+        )
+        ev_tg = FakeAstrMessageEvent(
+            [
+                plugin_main.Comp.Plain("TG rollout green.\n\n| Node | P99 |\n|---|---|\n| Edge | 9ms |"),
+            ],
+            platform_name="telegram",
+        )
+        ev_flaky = FakeAstrMessageEvent(
+            [plugin_main.Comp.Plain("丙群第一句\n\n丙群第二句保底")],
+            platform_name="weixin_oc",
+            fail_on_send_index=0,
+        )
+
+        async def _run_all() -> None:
+            await asyncio.gather(
+                plugin.on_decorating_result(ev_qq),
+                plugin.on_decorating_result(ev_tg),
+                plugin.on_decorating_result(ev_flaky),
+            )
+
+        asyncio.run(_run_all())
+
+        # QQ session preserved Reply + both At headers strictly on bubble 1 and KV card on bubble 2
+        self.assertEqual(len(ev_qq.sent_batches), 1)
+        self.assertEqual(len(ev_qq.sent_batches[0]), 4)
+        self.assertEqual(ev_qq.sent_batches[0][-1].text, "甲群排查完了")
+        self.assertIn("- 网关：正常", ev_qq.get_result().chain[0].text)
+
+        # Telegram session got monospace code table independently without QQ KV leak
+        self.assertEqual(len(ev_tg.sent_batches), 1)
+        self.assertEqual(ev_tg.sent_batches[0][0].text, "TG rollout green")
+        self.assertTrue(ev_tg.get_result().chain[0].text.startswith("```text\n"))
+
+        # Flaky session recovered full original chain without affecting QQ or TG
+        self.assertIn("丙群第一句", ev_flaky.get_result().chain[0].text)
+        self.assertIn("丙群第二句保底", ev_flaky.get_result().chain[0].text)
 
 
 if __name__ == "__main__":

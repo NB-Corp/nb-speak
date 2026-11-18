@@ -21,6 +21,7 @@ import {
   SpeakStreamAccumulator,
   turnToEvents,
 } from '../src/parser.ts';
+import { transformOutboundText } from '../src/format.ts';
 import { startSpeakBridge } from '../src/bridge.ts';
 
 const TEST_DIR = path.dirname(fileURLToPath(import.meta.url));
@@ -351,4 +352,46 @@ test('nb-speak openclaw subcommand forwards arguments to install-openclaw.mjs cl
   } finally {
     fs.rmSync(tmpRoot, { recursive: true, force: true });
   }
+});
+
+test('transformOutboundText is strictly idempotent across repeated hook passes on KV table cards, code blocks, and overflow notes', () => {
+  const tableAndCodeWall = [
+    '*sighs* Bubble 1: ### Rollout Check',
+    '',
+    'Error rate held at 0.02%.',
+    '',
+    '| Service | State | Latency |',
+    '|---|---|---|',
+    '| Gateway | Green | 18ms |',
+    '| Worker | Green | 24ms |',
+    '',
+    '```sql',
+    'SELECT count(*) FROM active_leases;',
+    '```',
+    '',
+    'Hope this helps!',
+  ].join('\n');
+
+  const pass1 = transformOutboundText(tableAndCodeWall, { channel: 'whatsapp', maxBubbles: 4 });
+  assert.equal(pass1.changed, true);
+  assert.equal(pass1.lint.errorCount, 0);
+
+  const pass2 = transformOutboundText(pass1.primaryText, { channel: 'whatsapp', maxBubbles: 4 });
+  assert.equal(pass2.changed, false);
+  assert.equal(pass2.primaryText, pass1.primaryText);
+  assert.equal(pass2.lint.errorCount, 0);
+
+  const overflowEssay = [
+    'First beat covers primary latency.',
+    'Second beat covers replica lag.',
+    'Third beat covers connection saturation.',
+    'Fourth beat covers cache hit ratio.',
+    'Fifth beat covers canary rollback window.',
+  ].join('\n\n');
+
+  const over1 = transformOutboundText(overflowEssay, { channel: 'telegram', maxBubbles: 4 });
+  assert.equal(over1.changed, true);
+  const over2 = transformOutboundText(over1.primaryText, { channel: 'telegram', maxBubbles: 4 });
+  assert.equal(over2.changed, false);
+  assert.equal(over2.primaryText, over1.primaryText);
 });
