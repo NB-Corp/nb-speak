@@ -49,7 +49,7 @@ node packages/dsh-plugin/scripts/install-dsh.mjs --apply --link --profile web
 | **Default (`enableVoiceNotes: false`)** | Text bubbles + copyable `send_artifact` cards only (`voice_note` omitted from schema & prompt). | `0` extra tokens |
 | **OpenAI-compatible `/v1/audio/speech`** (`NB_SPEAK_VOICE_NOTES=true` + `NB_SPEAK_TTS_BASE_URL`) | Calls any OpenAI-compatible speech endpoint (OpenAI, Qwen TTS, Fish, Kokoro, vLLM) with `NB_SPEAK_TTS_API_KEY`, `NB_SPEAK_TTS_MODEL`, and `NB_SPEAK_TTS_VOICE`. | **`0` extra tokens** |
 | **Local JSON Bridge** (`NB_SPEAK_VOICE_NOTES=true` + `NB_SPEAK_TTS_BRIDGE`) | Invokes a local JSON TTS bridge script (`{ action: "submit", input, output, resultFile }`) for custom EBU R128 `-16 LUFS` mastering or local engines. | **`0` extra tokens** |
-| **Cloud TTS / Web Speech Fallback** (`NB_SPEAK_VOICE_NOTES=true`) | Supports optional cloud speech providers (`NB_SPEAK_TTS_PROVIDER=elevenlabs` with `ELEVENLABS_API_KEY`, etc.), or falls back automatically to zero-key browser **Web Speech API** (`data-audio-mode="web-speech"`) when unset. | **`0` extra tokens** (`render()` strips `audioSrc` DataURI; only WebUI `presentationMeta` receives `<audio>` data) |
+| **Cloud TTS / Web Speech Fallback** (`NB_SPEAK_VOICE_NOTES=true`) | Supports optional direct cloud speech adapters (`NB_SPEAK_TTS_PROVIDER`) or falls back automatically to zero-key browser **Web Speech API** (`data-audio-mode="web-speech"`) when unset. | **`0` extra tokens** (`render()` strips `audioSrc` DataURI; only WebUI `presentationMeta` receives `<audio>` data) |
 
 ```bash
 # Launch DSH WebUI with optional voice notes via any OpenAI-compatible /v1/audio/speech server:
