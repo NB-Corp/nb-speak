@@ -2,7 +2,7 @@
   "id": "nb-speak-openclaw",
   "name": "NB Speak — Human IM Bubbles & Table Gate",
   "description": "Stops OpenClaw from dumping raw Markdown pipe tables and 250-word essays into Telegram, WhatsApp, Discord, and Signal. Adds send_bubble + send_artifact tools, bundled chat-human skill, and a deterministic outbound formatting gate.",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "categories": ["channels"],
   "skills": ["./skills"],
   "contracts": {

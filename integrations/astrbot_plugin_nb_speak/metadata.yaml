@@ -7,7 +7,7 @@ desc: |
   2. 占位符级保护 ``` 代码块与 URL/小数点，绝不把代码、SQL 与链接切成碎片；
   3. 自动识别裸 Markdown 管道表格（|---|），在 QQ/微信/飞书转为清爽手机键值卡，在 Telegram/Discord 短表转为对齐等宽代码卡；
   4. 注入静态缓存友好的 chat-human 口语物理层（省冗余句号、去客服管家套话与剧本括号），内置 8 规则 bubble_lint，可选语音默认关闭（enable_voice_notes: false）。
-version: 0.2.0
+version: 0.2.1
 author: NB-Corp
 repo: https://github.com/NB-Corp/astrbot_plugin_nb_speak
 astrbot_version: ">=4.16.0"

@@ -7,6 +7,7 @@ import json
 import os
 import re
 import tempfile
+import time
 import urllib.request
 from dataclasses import dataclass
 from typing import Any, Dict, List, Sequence
@@ -571,6 +572,18 @@ def _post_tts_wav_sync(
 
     target_dir = output_dir or tempfile.gettempdir()
     os.makedirs(target_dir, exist_ok=True)
+    # Opportunistically sweep stale nb_speak_astr_*.wav files older than 15 minutes
+    try:
+        cutoff = time.time() - 900.0
+        for entry in os.scandir(target_dir):
+            if entry.is_file() and entry.name.startswith("nb_speak_astr_") and entry.name.endswith(".wav"):
+                if entry.stat().st_mtime < cutoff:
+                    try:
+                        os.unlink(entry.path)
+                    except OSError:
+                        pass
+    except OSError:
+        pass
     fd, wav_path = tempfile.mkstemp(prefix="nb_speak_astr_", suffix=".wav", dir=target_dir)
     try:
         os.write(fd, audio_bytes)

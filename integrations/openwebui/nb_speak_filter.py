@@ -3,7 +3,7 @@ title: NB Speak — Human IM Bubbles & Table Gate
 author: NB-Corp
 author_url: https://github.com/NB-Corp/nb-speak
 funding_url: https://github.com/NB-Corp/nb-speak
-version: 0.2.0
+version: 0.2.1
 license: MIT
 description: Stop LLMs from dumping raw Markdown pipe tables and 250-word essay walls in OpenWebUI. Preserves multimodal images/files, supports per-user UserValves, cleans stage brackets & concierge tails into airy short paragraphs, and keeps voice notes off by default.
 """

@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import asyncio
-import logging
 from typing import Any, List
 
 try:
@@ -13,7 +12,21 @@ try:
     from astrbot.api.star import Context, Star
     import astrbot.api.message_components as Comp
 except ModuleNotFoundError:  # Standalone unit-test fallback when AstrBot host is not installed
-    logger = logging.getLogger("astrbot_plugin_nb_speak")
+
+    class _FallbackLogger:
+        def debug(self, *_args: Any, **_kwargs: Any) -> None:
+            pass
+
+        def info(self, *_args: Any, **_kwargs: Any) -> None:
+            pass
+
+        def warning(self, *_args: Any, **_kwargs: Any) -> None:
+            pass
+
+        def error(self, *_args: Any, **_kwargs: Any) -> None:
+            pass
+
+    logger = _FallbackLogger()
     AstrBotConfig = dict  # type: ignore[misc,assignment]
     AstrMessageEvent = Any  # type: ignore[misc,assignment]
     ProviderRequest = Any  # type: ignore[misc,assignment]

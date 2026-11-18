@@ -26,7 +26,7 @@ class OpenWebUIFilterTests(unittest.TestCase):
         self.assertIn("title: NB Speak — Human IM Bubbles & Table Gate", raw_source)
         self.assertIn("author: NB-Corp", raw_source)
         self.assertIn("author_url: https://github.com/NB-Corp/nb-speak", raw_source)
-        self.assertIn("version: 0.2.0", raw_source)
+        self.assertIn("version: 0.2.1", raw_source)
 
         flt = Filter()
         self.assertFalse(flt.valves.enable_voice_notes)

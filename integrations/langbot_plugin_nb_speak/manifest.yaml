@@ -4,7 +4,7 @@ metadata:
   author: NB-Corp
   name: langbot_plugin_nb_speak
   repository: https://github.com/NB-Corp/langbot_plugin_nb_speak
-  version: 0.2.0
+  version: 0.2.1
   icon: assets/icon.svg
   label:
     en_US: NB Speak — Human IM Bubbles & Table Gate

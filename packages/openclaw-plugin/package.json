@@ -1,6 +1,6 @@
 {
   "name": "@nb-corp/nb-speak-openclaw",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Native OpenClaw plugin & deterministic outbound gate: stops raw Markdown pipe-table dumps (#36323) and 250-word essay walls on Telegram, WhatsApp, Discord, and Signal with paced IM bubbles, code/table cards, and the chat-human skill.",
   "license": "MIT",
   "author": "Nai Long 7th <nailong@xter.org>",
